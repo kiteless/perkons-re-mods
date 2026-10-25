@@ -14,6 +14,7 @@ Firmware mods for the **Erica Synths Pērkons HD-01**, built with the
 | mod | what | status |
 |---|---|---|
 | [voice-map](voice-map/) | any voice can run any of the four voice engines; layout per bank from `voices.json` | 0.1, hardware-tested on 1.3.0 |
+| [fx-reverb](fx-reverb/) | reverb instead of the BBD delay (config switch), freeze for both | in development |
 
 ## Use
 
