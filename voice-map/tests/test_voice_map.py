@@ -23,6 +23,8 @@ import _voice_map_common as vmc  # noqa: E402  (on sys.path once a mod patch is 
 MOD = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARENAS = (vm_model.PK_ARENA_BASE, vm_model.PK_ARENA_BASE + 4 * vm_model.PK_ARENA_SIZE)
 
+OFF = Symbols(SYMBOLS_V130).off
+
 
 def build_f1(stock, sym, digits, tmp):
     p = Patcher(stock)
@@ -103,22 +105,22 @@ class TestVoiceMapF1(unittest.TestCase):
         e.send(3, 2, b'\x00\x01')
         e.pump()
         for out in (0, 2, 3):
-            self.assertEqual(e.r8(e.slot(out) + 0x2c6d), 1, f'output {out + 1}')
+            self.assertEqual(e.r8(e.slot(out) + OFF['cFourthSlot.p2cfg']), 1, f'output {out + 1}')
         self.assertNotEqual(e.class_of(e.slot(1)), 'cFourthSlot')
 
     def test_sample_load_reaches_every_sampler(self):
         e = self.system(self.image('4444'))
         e.send(3, 3, b'\x01')
         e.pump()
-        ptrs = [e.r32(e.slot(o) + 0x2a90 + 0xe4) for o in range(4)]
+        ptrs = [e.r32(e.slot(o) + OFF['cFourthSlot.sampler'] + OFF['cSamplePlayer.sample_ptr']) for o in range(4)]
         self.assertTrue(all(ptrs), [hex(x) for x in ptrs])
         self.assertEqual(len(set(ptrs)), 1, 'all instances should share the same sample data')
 
     def test_heap_capped_below_patch_ram(self):
         img = self.image('4434')
-        lit = self.sym.raw['heap']['limit_literal']
+        lit = self.sym.site('sbrk.limit_literal')['addr']
         seg = img.segment('m7')
-        val = struct.unpack_from('<I', seg.data, int(lit, 16) - seg.addr)[0]
+        val = struct.unpack_from('<I', seg.data, lit - seg.addr)[0]
         self.assertEqual(val - 0x400, vm_model.PK_RAM_BASE)
 
 

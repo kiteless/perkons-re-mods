@@ -99,13 +99,14 @@ static void remap_output(unsigned out, unsigned src)
 {
     uint32_t primask = irq_save();
     uint8_t *obj = PK_ARENA(out);
-    uint8_t ctrl[4] = {obj[4], obj[5], obj[6], obj[7]};     /* algo, mode, velocity, accent */
+    /* algo, mode, velocity, accent are consecutive bytes starting at FW_ALGO_OFF */
+    uint8_t ctrl[4] = {obj[FW_ALGO_OFF], obj[FW_MODE_OFF], obj[FW_VELOCITY_OFF], obj[FW_ACCENT_OFF]};
     uint8_t mute = obj[FW_MUTE_OFF];
     int32_t gain = *(int32_t *)(obj + FW_GAIN_OFF);
     build_output(out, src);
     ((cVoice *)obj)->vtbl->init((cVoice *)obj);
     for (unsigned i = 0; i < 4; i++)
-        obj[4 + i] = ctrl[i];
+        obj[FW_ALGO_OFF + i] = ctrl[i];
     obj[FW_MUTE_OFF] = mute;
     *(int32_t *)(obj + FW_GAIN_OFF) = gain;
     if (src == FW_SAMPLE_VOICE) {

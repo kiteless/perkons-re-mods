@@ -18,6 +18,8 @@ vmf = load_patch('voice_map_fixed')
 
 SYMBOLS_M4 = SYMBOLS_V130.replace('-m7.json', '-m4.json')
 
+OFF = Symbols(SYMBOLS_V130).off
+
 
 def build(stock, mod, arg, tmp):
     p = Patcher(stock)
@@ -124,8 +126,8 @@ class TestVoiceMapLive(unittest.TestCase):
         e.pump()
         for o in range(4):
             obj = e.slot(o)
-            self.assertEqual((e.r8(obj + 4), e.r8(obj + 5)), (1, 2), f'output {o + 1} algo/mode')
-            self.assertEqual(e.r8(obj + 0xb8), 1 if o == 1 else 0, f'output {o + 1} mute')
+            self.assertEqual((e.r8(obj + OFF['cVoice.algo']), e.r8(obj + OFF['cVoice.mode'])), (1, 2), f'output {o + 1} algo/mode')
+            self.assertEqual(e.r8(obj + OFF['cVoice.mute']), 1 if o == 1 else 0, f'output {o + 1} mute')
         e.send_triggers([1, 1, 0, 0], [(1, 2)] * 4)
         outs = e.audio(2000)
         self.assertGreater(max(map(abs, outs[0])), 500)
@@ -137,9 +139,9 @@ class TestVoiceMapLive(unittest.TestCase):
         e.pump()
         e.send(3, 4, bytes([3, 3, 3, 3]))
         e.pump()
-        ptrs = [e.r32(e.slot(o) + 0x2a90 + 0xe4) for o in range(4)]
+        ptrs = [e.r32(e.slot(o) + OFF['cFourthSlot.sampler'] + OFF['cSamplePlayer.sample_ptr']) for o in range(4)]
         self.assertTrue(all(ptrs) and len(set(ptrs)) == 1, [hex(x) for x in ptrs])
-        self.assertEqual([e.r8(e.slot(o) + 0x2c6d) for o in range(4)], [1, 1, 1, 1])
+        self.assertEqual([e.r8(e.slot(o) + OFF['cFourthSlot.p2cfg']) for o in range(4)], [1, 1, 1, 1])
         got = self.play(e, 0, 2, 0)
         stock = verify.boot(self.stock, self.sym7)
         stock.send(3, 2, b'\x00\x01')
