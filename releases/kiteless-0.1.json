@@ -1,0 +1,14 @@
+{
+  "name": "kiteless",
+  "version": "0.1",
+  "base": "v1.3.0",
+  "base_image": "perkons_v1.3.0-0-force.img",
+  "tag": "kiteless0.1",
+  "banner": "+ kiteless 0.1 (voice-map)",
+  "patches": ["voice_map:bank"],
+  "summary": "Any voice can run any of the four Pērkons voice engines, chosen per bank with voices.json.",
+  "notes": [
+    "voices.json format and file locations: see voice-map/README.md.",
+    "Without any voices.json the unit behaves exactly like official 1.3.0."
+  ]
+}
