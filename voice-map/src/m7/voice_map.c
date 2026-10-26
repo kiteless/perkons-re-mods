@@ -3,8 +3,11 @@
  * The four original engine objects are kept untouched as templates. Every output runs
  * its own copy in a private 16 KB arena, so remapping an output means copying a template
  * over its arena; nothing else is ever shared or moved, and slots[] never changes after
- * boot. The initial map is compiled in (PK_MAP, one nibble per output, 0-3); the M4 can
- * replace it at any time with config message type PK_MSG_VOICE_MAP (4 bytes, 0-3 each).
+ * boot. The initial map is compiled in (PK_MAP, one nibble per output); the M4 can
+ * replace it at any time with config message type PK_MSG_VOICE_MAP (4 bytes, one engine
+ * per output). Engines 0-3 are the stock ones (copied from their templates); 4 and up
+ * are engines other mods add (voices.json 5 and up), built in place by the function the
+ * generated pk_extra_build[] table names. Unknown engines mean stock for that output.
  *
  * Hooks (installed by patches/_voice_map_common.py):
  *   main: bl wire_voices                       -> pk_boot
@@ -19,6 +22,15 @@
 #include "slot_layout.h"
 
 #define PK_MSG_VOICE_MAP 4
+#define PK_N_STOCK 4
+
+#ifndef PK_N_EXTRA
+#define PK_N_EXTRA 0
+#endif
+#if PK_N_EXTRA
+typedef void (*pk_extra_build_t)(uint8_t *obj, unsigned out);
+extern const pk_extra_build_t pk_extra_build[PK_N_EXTRA];   /* generated */
+#endif
 
 typedef struct {
     uint32_t magic;
@@ -64,13 +76,32 @@ static void retarget(uint8_t *obj, unsigned src, unsigned out)
         *(int32_t **)(obj + s->pp[i].off) = &FW_PARAMS[out][s->pp[i].k];
 }
 
-/* Overwrite output `out`'s arena with a fresh copy of `src`'s engine. */
+/* The engine output `out` runs for map value `v`: v itself if it's built in, else stock. */
+static unsigned engine_for(unsigned out, unsigned v)
+{
+    if (v < PK_N_STOCK)
+        return v;
+#if PK_N_EXTRA
+    if (v - PK_N_STOCK < PK_N_EXTRA && pk_extra_build[v - PK_N_STOCK])
+        return v;
+#endif
+    return out;
+}
+
+/* Overwrite output `out`'s arena with a fresh instance of engine `src` (engine_for()). */
 static uint8_t *build_output(unsigned out, unsigned src)
 {
-    const pk_slot_t *s = &pk_slots[src];
     uint8_t *obj = PK_ARENA(out);
-    copy_words((uint32_t *)obj, (const uint32_t *)s->base, s->size);
-    retarget(obj, src, out);
+    if (src < PK_N_STOCK) {
+        const pk_slot_t *s = &pk_slots[src];
+        copy_words((uint32_t *)obj, (const uint32_t *)s->base, s->size);
+        retarget(obj, src, out);
+    }
+#if PK_N_EXTRA
+    else {
+        pk_extra_build[src - PK_N_STOCK](obj, out);
+    }
+#endif
     PK->inst[out] = (cVoice *)obj;
     PK->src[out] = (uint8_t)src;
     PK->sampler_static[out] = PK->static_init[0];
@@ -89,7 +120,7 @@ void pk_boot(void)
     PK->static_init[1] = *FW_CRUSH_STATIC;
     PK->remaps = 0;
     for (unsigned out = 0; out < 4; out++)
-        FW_SLOTS[out] = (cVoice *)build_output(out, (PK_MAP >> (4 * out)) & 3);
+        FW_SLOTS[out] = (cVoice *)build_output(out, engine_for(out, (PK_MAP >> (4 * out)) & 0xf));
 }
 
 /* Switch one output to another engine while audio runs: an instant cut. The new engine
@@ -119,9 +150,11 @@ static void remap_output(unsigned out, unsigned src)
 
 static void apply_map_msg(const uint8_t *map)
 {
-    for (unsigned out = 0; out < 4; out++)
-        if (map[out] < 4 && map[out] != PK->src[out])
-            remap_output(out, map[out]);
+    for (unsigned out = 0; out < 4; out++) {
+        unsigned src = engine_for(out, map[out]);
+        if (src != PK->src[out])
+            remap_output(out, src);
+    }
     PK->remaps++;
 }
 

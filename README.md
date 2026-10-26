@@ -16,6 +16,7 @@ Firmware mods for the **Erica Synths Pērkons HD-01**, built with the
 | [voice-map](voice-map/) | any voice can run any of the four voice engines; layout per bank from `voices.json` | 0.1, hardware-tested on 1.3.0 |
 | [fx-reverb](fx-reverb/) | reverb instead of the BBD delay (config switch) | emulator-tested, hardware next |
 | [fx-freeze](fx-freeze/) | 2-way FX switch as freeze: delay looper, reverb hold with fx-reverb | emulator-tested, hardware next |
+| [zibens](zibens/) | ZIBENS synth voice on any output (`voices.json` value 5): scale-stepped saw/square/sine, MS-style filter; needs voice-map | in development |
 
 The FX mods build alone or together (the framework's M4 host joins them).
 

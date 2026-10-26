@@ -61,7 +61,8 @@ class TestVoiceMapLive(unittest.TestCase):
             (None, [0, 1, 2, 3]),                                                       # no file: stock
             ({'voice1': 4, 'voice2': 4, 'voice3': 3, 'voice4': 4}, [3, 3, 2, 3]),
             ({'voice2': 1}, [0, 0, 2, 3]),                                              # missing keys: stock
-            ({'voice1': 0, 'voice2': 5, 'voice3': -1, 'voice4': 300}, [0, 1, 2, 3]),  # invalid: stock
+            ({'voice1': 0, 'voice3': -1, 'voice4': 300}, [0, 1, 2, 3]),                 # invalid: stock
+            ({'voice2': 5, 'voice3': 15, 'voice4': 16}, [0, 4, 14, 3]),                 # 5-15 pass on (M7 decides)
             ({'voice1': '2', 'VOICE2': 1, 'other': 9}, [1, 1, 2, 3]),                   # string ok, keys case-sensitive
         ]
         for content, want in cases:
