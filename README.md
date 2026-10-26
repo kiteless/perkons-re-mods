@@ -31,11 +31,13 @@ PERKONS_MODS = ../perkons-re-mods
 cd ../perkons-re
 make test                                              # framework + mod tests
 make build PATCHES=voice_map:bank                      # one-off build
+make ui                                                # Mod Matrix: pick mods, build in the browser
 make release REL=../perkons-re-mods/releases/kiteless-0.1.json   # versioned release
 ```
 
 A mod folder has `patches/` (patch modules), `src/<core>/` (C), `lib/` (Python helpers),
-`tests/` and `docs/`; `releases/` holds release definitions. See the framework's README
+`tests/`, `docs/` and `mod.json` (what the framework's Mod Matrix, `make ui`, offers);
+`releases/` holds release definitions. See the framework's README
 and `docs/porting.md` for moving mods to a new official firmware.
 
 ## License

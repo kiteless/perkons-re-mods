@@ -1,0 +1,12 @@
+{
+  "options": [
+    {
+      "id": "voice-map",
+      "title": "VOICE MAP",
+      "summary": "Any output can run any of the four voice engines, chosen per bank with a voices.json on the SD card. Without one, the unit behaves like stock.",
+      "patches": ["voice_map:bank"],
+      "code": "vm",
+      "status": "hardware-tested"
+    }
+  ]
+}
