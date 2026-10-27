@@ -44,13 +44,15 @@ engine it should run:
 | 2 | voice 2 | Fold Drum 2 / Wavetable / Complex |
 | 3 | voice 3 | Resonant drums / Slap / Karplus–Chord |
 | 4 | voice 4 | Noise hat / Noise–tone / Acoustic hats (samples) |
+| 5 | [ZIBENS](../zibens/) synth voice (only in builds that include it) | scale: minor pentatonic / Dorian / Phrygian |
 
 The ALGO and MODE switches, knobs, trigger input, output jack, filter and drive of each
 voice work as usual; only the sound engine behind them changes.
 
-* A voice you leave out, or give a value other than 1–4, keeps its normal engine.
+* A voice you leave out, or give a value that isn't installed (e.g. 5 without ZIBENS), keeps
+  its normal engine.
 * Keys are lowercase (`voice1`, not `Voice1`).
-* Values must be whole numbers; numbers wrap at 256, so stick to 1–4.
+* Values must be whole numbers; numbers wrap at 256, so stick to the ones in the table.
 
 ### Where to put it
 
@@ -62,7 +64,8 @@ voice work as usual; only the sound engine behind them changes.
 
 **Bank folders count from 00:** the first bank on the grid (row 1, step 1) is
 `BANKS/00`, row 1 step 4 is `BANKS/03`, and the last bank (row 4, step 16) is `BANKS/63`.
-A bank's own file replaces the root file entirely; they're not merged. To keep one bank
+A bank's own file replaces the root file entirely; they're not merged. **If a voice
+won't change, look for a `voices.json` in the bank you're on**: it wins over the root one. To keep one bank
 stock while the root file changes others, give it `{"voice1": 1, "voice2": 2, "voice3": 3, "voice4": 4}`.
 
 The file is read every time a bank loads (at power-on and when you switch banks), so
@@ -91,4 +94,5 @@ after editing it on your computer, power-cycle or switch banks.
 
 ## Version history
 
+* **unreleased**: other mods can add engines (values 5 and up); the first is ZIBENS (5).
 * **0.1**: first release. Per-voice engine choice from `voices.json`, per bank or global.

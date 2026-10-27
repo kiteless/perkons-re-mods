@@ -4,9 +4,11 @@
       "id": "fx-reverb",
       "title": "FX REVERB",
       "summary": "A reverb in place of the BBD delay, switched on config row 3 step 15. TIME = pre-delay, FEEDBACK = decay, LFO RATE = diffusion, MOD DEPTH = motion.",
-      "patches": ["fx_reverb"],
+      "patches": [
+        "fx_reverb"
+      ],
       "code": "rv",
-      "status": "emulator-tested"
+      "status": "hardware-tested"
     }
   ]
 }
