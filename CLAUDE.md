@@ -16,7 +16,7 @@ PATCHES=...`, `make ui`.
 | `voice-map` | M7 + M4 | `voices.json` (SD root, `BANKS/NN/`) |
 | `fx-reverb` | M4 (M4 host) | row 3 step 15 (key 46), `"fx-reverb"` |
 | `fx-freeze` | M4 (M4 host) | row 3 step 16 (key 47), `"fx-switch-freeze"` |
-| `zibens` | M7, a voice-map engine (requires voice-map) | `voices.json` value 5 |
+| `zibens` | M7, a voice-map engine (requires voice-map) | `"zibens"` in `voices.json` |
 
 Next release in mind: `kiteless 0.2` (voice-map + fx-reverb + fx-freeze + zibens) in
 `releases/`.
@@ -26,7 +26,8 @@ Next release in mind: `kiteless 0.2` (voice-map + fx-reverb + fx-freeze + zibens
 * One folder per mod: `mod.json`, `patches/`, `src/<core>/`, `lib/`, `tests/`, `docs/`
   (`design.md`), and a user-facing `README.md`.
 * `mod.json` codes taken: `vm`, `rv`, `fz`, `zb`. Config keys taken: 46, 47. voice-map engine
-  numbers taken: 1-4 stock, 5 zibens (extra engines register in `p.shared['voice_map']`).
+  numbers taken: 1-4 stock, 5 zibens; voices.json selects engines by name (extra engines
+  register a number and a `name` in `p.shared['voice_map']`).
 * M4 mods register with the framework's M4 host; FX mods meet through its weak hooks.
 * Docs, READMEs, mod.json and commit messages never say how or whether something was
   tested (no test status, hardware logs, "verified" notes): pushed means tested.

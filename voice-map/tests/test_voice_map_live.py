@@ -58,12 +58,12 @@ class TestVoiceMapLive(unittest.TestCase):
 
     def test_m4_map_from_root_file(self):
         cases = [
-            (None, [0, 1, 2, 3]),                                                       # no file: stock
-            ({'voice1': 4, 'voice2': 4, 'voice3': 3, 'voice4': 4}, [3, 3, 2, 3]),
-            ({'voice2': 1}, [0, 0, 2, 3]),                                              # missing keys: stock
-            ({'voice1': 0, 'voice3': -1, 'voice4': 300}, [0, 1, 2, 3]),                 # invalid: stock
-            ({'voice2': 5, 'voice3': 15, 'voice4': 16}, [0, 4, 14, 3]),                 # 5-15 pass on (M7 decides)
-            ({'voice1': '2', 'VOICE2': 1, 'other': 9}, [1, 1, 2, 3]),                   # string ok, keys case-sensitive
+            (None, [0, 1, 2, 3]),                                                         # no file: stock
+            ({'voice1': 'voice4', 'voice2': 'voice4', 'voice3': 'voice3', 'voice4': 'voice4'}, [3, 3, 2, 3]),
+            ({'voice2': 'voice1'}, [0, 0, 2, 3]),                                         # missing keys: stock
+            ({'voice1': 'Voice2', 'voice2': 'zibens', 'voice3': '', 'voice4': 'x'}, [0, 1, 2, 3]),  # unknown: stock
+            ({'voice1': 4, 'voice2': '3'}, [0, 1, 2, 3]),                                 # numbers: stock
+            ({'voice1': 'voice2', 'VOICE2': 'voice1', 'other': 'voice3'}, [1, 1, 2, 3]),  # keys case-sensitive
         ]
         for content, want in cases:
             with self.subTest(content=content):
@@ -73,17 +73,17 @@ class TestVoiceMapLive(unittest.TestCase):
         self.assertEqual(got, [0, 1, 2, 3])
 
     def test_m4_root_build_ignores_bank_file(self):
-        sd = {'BANKS/07/voices.json': b'{"voice1": 2}', 'voices.json': b'{"voice1": 3}'}
+        sd = {'BANKS/07/voices.json': b'{"voice1": "voice2"}', 'voices.json': b'{"voice1": "voice3"}'}
         self.assertEqual(self.m4_run(self.root, self.root_syms, sd)[0], [2, 1, 2, 3])
 
     def test_m4_bank_file_overrides_root(self):
-        sd = {'BANKS/07/voices.json': b'{"voice1": 2}', 'voices.json': b'{"voice1": 3, "voice2": 4}'}
+        sd = {'BANKS/07/voices.json': b'{"voice1": "voice2"}', 'voices.json': b'{"voice1": "voice3", "voice2": "voice4"}'}
         got, log = self.m4_run(self.bank, self.bank_syms, sd, bank=7)
         self.assertEqual(got, [1, 1, 2, 3], 'bank file wins outright (root keys not merged)')
         self.assertIn(('stat', 'BANKS/07/voices.json'), log)
 
     def test_m4_bank_falls_back_to_root(self):
-        sd = {'BANKS/03/voices.json': b'{"voice1": 2}', 'voices.json': b'{"voice4": 1}'}
+        sd = {'BANKS/03/voices.json': b'{"voice1": "voice2"}', 'voices.json': b'{"voice4": "voice1"}'}
         self.assertEqual(self.m4_run(self.bank, self.bank_syms, sd, bank=12)[0], [0, 1, 2, 0])
         self.assertEqual(self.m4_run(self.bank, self.bank_syms, {}, bank=12)[0], [0, 1, 2, 3])
 
@@ -156,7 +156,7 @@ class TestVoiceMapLive(unittest.TestCase):
         self.assertEqual(verify.engine_map_of(e), [0, 3, 2, 0])
 
     def test_end_to_end_m4_message_drives_m7(self):
-        sd = {'voices.json': b'{"voice1": 3, "voice2": 3, "voice3": 4, "voice4": 1}'}
+        sd = {'voices.json': b'{"voice1": "voice3", "voice2": "voice3", "voice3": "voice4", "voice4": "voice1"}'}
         payload, _ = self.m4_run(self.root, self.root_syms, sd)
         e = verify.boot(self.root, self.sym7)
         e.send(3, 4, bytes(payload))

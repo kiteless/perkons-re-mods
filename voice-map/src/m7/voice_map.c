@@ -6,7 +6,7 @@
  * boot. The initial map is compiled in (PK_MAP, one nibble per output); the M4 can
  * replace it at any time with config message type PK_MSG_VOICE_MAP (4 bytes, one engine
  * per output). Engines 0-3 are the stock ones (copied from their templates); 4 and up
- * are engines other mods add (voices.json 5 and up), built in place by the function the
+ * are engines other mods add (voices.json names such as "zibens"), built in place by the function the
  * generated pk_extra_build[] table names. Unknown engines mean stock for that output.
  *
  * Hooks (installed by patches/_voice_map_common.py):

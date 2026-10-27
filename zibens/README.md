@@ -1,18 +1,18 @@
 # ZIBENS
 
 A new synth voice for the Pērkons: scale-locked resonant saw, PWM square and wavefolded
-sine, on any of the four voices. *Zibens* is Latvian for lightning, Pērkons's weapon.
+sine, on any of the four voices. *Zibens* is Latvian for lightning.
 
 Needs [voice-map](../voice-map/) in the same build (the Mod Matrix ticks it for you).
 Based on official Pērkons firmware **1.3.0**. Unofficial; not affiliated with Erica Synths.
 
 ## Putting it on a voice
 
-ZIBENS is voice-map engine **5**. In `voices.json` (SD card root, or `BANKS/NN/` for one
-bank), give the voice the value 5:
+In `voices.json` (SD card root, or `BANKS/NN/` for one bank), give the voice the engine
+`"zibens"`:
 
 ```json
-{ "voice1": 1, "voice2": 2, "voice3": 5, "voice4": 4 }
+{ "voice1": "voice1", "voice2": "voice2", "voice3": "zibens", "voice4": "voice4" }
 ```
 
 Power-cycle or switch banks to load it. If the voice stays stock, look for a
@@ -149,7 +149,5 @@ ZIBENS follows MIDI exactly as the stock voices do; nothing on the MIDI side is 
 
 * Tuning: A = 440 Hz equal temperament.
 * Notes outside 8 Hz-12 kHz (extreme MIDI transposition) are held at those limits.
-* CPU: a few dozen instructions per sample, a small fraction of the voice processor's
-  budget.
 
 The design and the reverse-engineering behind it: [docs/design.md](docs/design.md).

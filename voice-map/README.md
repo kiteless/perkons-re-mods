@@ -28,31 +28,29 @@ To uninstall, flash the official `perkons_v1.3.0-0-force.img` the same way.
 
 ```json
 {
-  "voice1": 4,
-  "voice2": 4,
-  "voice3": 3,
-  "voice4": 4
+  "voice1": "voice4",
+  "voice2": "voice4",
+  "voice3": "zibens",
+  "voice4": "voice4"
 }
 ```
 
-Each key is a voice (track/output 1–4). Each value is the number of the stock voice whose
-engine it should run:
+Each key is a voice (track/output 1-4). Each value names the engine it should run:
 
-| value | engine (the stock voice it comes from) | ALGO 1 / 2 / 3 |
+| value | engine | ALGO 1 / 2 / 3 |
 |---|---|---|
-| 1 | voice 1 | Fold Drum 1 / Wavetable / Simple |
-| 2 | voice 2 | Fold Drum 2 / Wavetable / Complex |
-| 3 | voice 3 | Resonant drums / Slap / Karplus–Chord |
-| 4 | voice 4 | Noise hat / Noise–tone / Acoustic hats (samples) |
-| 5 | [ZIBENS](../zibens/) synth voice (only in builds that include it) | scale: minor pentatonic / Dorian / Phrygian |
+| `"voice1"` | stock voice 1's engine | Fold Drum 1 / Wavetable / Simple |
+| `"voice2"` | stock voice 2's engine | Fold Drum 2 / Wavetable / Complex |
+| `"voice3"` | stock voice 3's engine | Resonant drums / Slap / Karplus–Chord |
+| `"voice4"` | stock voice 4's engine | Noise hat / Noise–tone / Acoustic hats (samples) |
+| `"zibens"` | the [ZIBENS](../zibens/) synth voice (builds that include it) | scale: minor pentatonic / Dorian / Phrygian |
 
 The ALGO and MODE switches, knobs, trigger input, output jack, filter and drive of each
 voice work as usual; only the sound engine behind them changes.
 
-* A voice you leave out, or give a value that isn't installed (e.g. 5 without ZIBENS), keeps
-  its normal engine.
-* Keys are lowercase (`voice1`, not `Voice1`).
-* Values must be whole numbers; numbers wrap at 256, so stick to the ones in the table.
+* A voice you leave out, or give a name that isn't installed (e.g. `"zibens"` in a build
+  without it), keeps its normal engine.
+* Keys and names are lowercase and exact (`"voice1"`, not `"Voice1"`).
 
 ### Where to put it
 
@@ -66,7 +64,8 @@ voice work as usual; only the sound engine behind them changes.
 `BANKS/00`, row 1 step 4 is `BANKS/03`, and the last bank (row 4, step 16) is `BANKS/63`.
 A bank's own file replaces the root file entirely; they're not merged. **If a voice
 won't change, look for a `voices.json` in the bank you're on**: it wins over the root one. To keep one bank
-stock while the root file changes others, give it `{"voice1": 1, "voice2": 2, "voice3": 3, "voice4": 4}`.
+stock while the root file changes others, give it
+`{"voice1": "voice1", "voice2": "voice2", "voice3": "voice3", "voice4": "voice4"}`.
 
 The file is read every time a bank loads (at power-on and when you switch banks), so
 after editing it on your computer, power-cycle or switch banks.
@@ -91,5 +90,6 @@ after editing it on your computer, power-cycle or switch banks.
 
 ## Version history
 
-* **unreleased**: other mods can add engines (values 5 and up); the first is ZIBENS (5).
+* **unreleased**: engines are chosen by name (`"voice1"`-`"voice4"`, replacing the numbers
+  1-4); other mods can add engines, the first being `"zibens"`.
 * **0.1**: first release. Per-voice engine choice from `voices.json`, per bank or global.

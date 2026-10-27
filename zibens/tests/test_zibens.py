@@ -7,7 +7,7 @@ import unittest
 
 from fixtures import SYMBOLS_V130, build_patched, require_image
 from perkons import verify
-from perkons.emu import Symbols
+from perkons.emu import M4Emu, Symbols
 from perkons.fwimage import Image
 from perkons.patch import PatchError
 
@@ -63,7 +63,7 @@ class TestZibens(unittest.TestCase):
         cls.sym = Symbols(SYMBOLS_V130)
         cls.tmp = tempfile.mkdtemp(prefix='pk-zb-')
         cls.img, p = build_patched(cls.stock, ['voice_map:bank', 'zibens'], cls.tmp + '/a')
-        cls.m7 = p.cave_symbols['m7']
+        cls.syms = p.cave_symbols
 
     @classmethod
     def tearDownClass(cls):
@@ -105,6 +105,21 @@ class TestZibens(unittest.TestCase):
         e.send(3, 4, bytes([0, 1, 2, 3]))
         e.pump()
         self.assertEqual(e.class_of(e.slot(2)), 'cThirdSlot')
+
+    def test_voices_json_name_selects_zibens(self):
+        """M4: "zibens" in voices.json -> map message -> M7 runs ZIBENS on that output."""
+        s4 = Symbols(SYMBOLS_V130.replace('-m7.json', '-m4.json'))
+        sd = {'voices.json': b'{"voice1": "voice1", "voice2": "voice4", "voice3": "zibens"}'}
+        e4 = M4Emu(self.img.segment('m4').data, s4, self.img.segment('m7').data, sd=sd).boot()
+        e4.stub(s4.fn['load_samples'], lambda emu, *a: 0)
+        e4.call(self.syms['m4']['pk4_load_samples'], 0, max_insns=50_000_000)
+        m = [p for t, p in e4.sent(3) if t == 4][0]
+        self.assertEqual(list(m), [0, 3, 4, 3])
+        e = verify.boot(self.img, self.sym)
+        e.send(3, 4, m)
+        e.pump()
+        self.assertEqual([e.class_of(e.slot(o)) for o in range(4)],
+                         ['cFirstSlot', 'cFourthSlot', 'cZibens', 'cFourthSlot'])
 
     def test_needs_voice_map(self):
         with self.assertRaises(PatchError):
