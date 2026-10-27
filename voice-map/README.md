@@ -1,28 +1,18 @@
-# Voice map (kiteless 0.1)
+# Voice map
 
-Run any of the Pērkons' four voice engines on any of its four voices: four sample
-voices, two kicks and two snares, whatever you like. Choose the layout per bank with a
+Run any of the Pērkons' four voice engines on any of its four voices (four sample
+voices, two kicks and two snares, whatever you like), plus engines other mods add, such
+as the [ZIBENS](../zibens/) synth voice. Choose the layout per bank with a
 small text file on the SD card, the same way per-bank samples work in firmware 1.3.
 
 Based on official Pērkons firmware **1.3.0**. Unofficial; not affiliated with Erica Synths.
 
-## Install
+## Getting it
 
-Flash `perkons_v1.3.0-0-force.img` from the release folder like any official update:
-
-1. Copy it to the root of the SD card (it should be the only `.img` file there).
-2. Power off, hold all four voice trigger keys, power on. Release the keys when the first
-   row of steps starts lighting.
-3. Rows light 1 → 3 → 2 → 4, then the Pērkons boots.
-
-To check it's installed, look at `INFO.TXT` on the SD card:
-
-```
-Current Controller   (CM4) version: 1.3.0 - kiteless0.1
-Current Voice Engine (CM7) version: 1.3.0 - kiteless0.1
-```
-
-To uninstall, flash the official `perkons_v1.3.0-0-force.img` the same way.
+Build Pērkons firmware with **VOICE MAP** ticked in the **Mod Matrix**, from your own official
+firmware 1.3.0: follow [Get modded firmware](https://github.com/kiteless/perkons-re#get-modded-firmware)
+in perkons-re. No firmware files are provided here. To remove it, flash the official
+firmware again.
 
 ## Choosing engines: `voices.json`
 
@@ -83,13 +73,7 @@ after editing it on your computer, power-cycle or switch banks.
 * Kits store knob positions per voice, so loading a kit made for a kick onto a voice now
   running the hats engine gives the hats engine those knob positions.
 
-## Known limits (0.1)
+## Limits
 
 * The layout comes from the SD card only; there's no way to change it from the panel yet.
 * All sample voices share one set of samples.
-
-## Version history
-
-* **unreleased**: engines are chosen by name (`"voice1"`-`"voice4"`, replacing the numbers
-  1-4); other mods can add engines, the first being `"zibens"`.
-* **0.1**: first release. Per-voice engine choice from `voices.json`, per bank or global.

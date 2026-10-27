@@ -10,8 +10,7 @@
  *   DECAY (param 1)   amplitude decay, the stock voices' curve (max = no decay)
  *   PARAM1 (param 2)  attack, ~0.5 ms .. ~2 s
  *   PARAM2 (param 3)  saw: resonance of the digital MS filter (only saw has it);
- *                     square: pulse width; sine: fold macro (depth, follows the
- *                     envelope, with symmetry)
+ *                     square: pulse width; sine: fold macro (depth and symmetry)
  *   ALGO              minor pentatonic / Dorian / Phrygian (positions 1 / 2 / 3)
  *   MODE              saw / square / sine (positions 1 / 2 / 3)
  *   trigger note      transposes: + (note - 36) semitones, as on the stock voices
@@ -266,17 +265,16 @@ static inline float pole_lp(pole_t *p, float x)
     return lp;
 }
 
-/* The sine's fold macro (PARAM2 = z->extra). The fold depth follows the amplitude
- * envelope, so notes start folded and relax towards a sine as they decay (the
- * West Coast pluck); PARAM2 sets the peak depth and adds symmetry (a bias before the
- * fold: even harmonics). Two smooth stages, up to ~16x; 2x oversampled. */
+/* The sine's fold macro (PARAM2 = z->extra): fold depth and, rising with it, symmetry
+ * (a bias before the fold: even harmonics). Two smooth stages, up to ~16x; 2x
+ * oversampled. */
 static float folded_sine(zb_t *z, float p, float dt)
 {
     if (z->extra <= 0.0f) {                     /* PARAM2 at 0: a pure sine, folder idle */
         z->fold_prev = z->dc_x = z->dc_y = 0.0f;
         return sin2pi(p);
     }
-    float a = z->extra * z->env;                /* fold amount now */
+    float a = z->extra;                         /* fold amount: PARAM2 (static) */
     float g1 = 1.0f + 7.0f * a, g2 = 1.0f + a;  /* stage gains: 8x then 2x at the peak */
     float bias = 0.35f * a;                     /* symmetry */
     float h = p - 0.5f * dt;                    /* the 2x sub-sample half a step back */

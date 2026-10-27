@@ -198,15 +198,15 @@ class TestZibens(unittest.TestCase):
         rms = (sum(v * v for v in si) / len(si)) ** 0.5
         self.assertAlmostEqual(rms / pk, 2 ** -0.5, delta=0.02, msg='pure sine (crest factor sqrt 2)')
 
-    def test_sine_fold_follows_the_envelope(self):
-        """PARAM2 up: a note starts folded (bright) and relaxes towards a sine as it decays."""
+    def test_sine_fold_is_set_by_param2(self):
+        """PARAM2 up: folded (bright) all through the note, not only at its start."""
         x = self.play(self.machine(), [tone_for_step(10, 20), 1800, 0, 4095], mode=SINE, n=48000)
 
         def brightness(seg):                    # first-difference RMS / RMS: higher = more harmonics
             d = [b - a for a, b in zip(seg, seg[1:])]
             return (sum(v * v for v in d) / len(d)) ** .5 / ((sum(v * v for v in seg) / len(seg)) ** .5 or 1)
         early, late = brightness(x[1200:6000]), brightness(x[38400:43200])
-        self.assertGreater(early, 2 * late, 'bright at the start, rounder as it decays')
+        self.assertLess(abs(early - late), 0.15 * early, 'the fold stays put while the note decays')
         pure = self.play(self.machine(), [tone_for_step(10, 20), 1800, 0, 0], mode=SINE, n=6000)
         self.assertGreater(early, 3 * brightness(pure[1200:6000]), 'folding adds harmonics')
 

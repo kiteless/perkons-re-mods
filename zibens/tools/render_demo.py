@@ -33,7 +33,6 @@ PHRASES = [
     ('square_pent_narrow',  PENT,     SQUARE, [0, 2, 5, 3, 0, 5, 7, 4], 1300, 0,    0.8,  0.8, None),
     ('sine_pent_fold',      PENT,     SINE,   [5, 7, 10, 7, 5, 8, 10, 12], 1800, 0, 0.0,  1.0, None),
     ('sine_pad_slow_attack', DORIAN,  SINE,   [14, 16, 17, 14], 3000, 2600, 0.2, 0.2, None),
-    ('sine_westcoast_pluck', PENT,    SINE,   [5, 7, 10, 7, 5, 8, 10, 12], 900, 0,  0.85, 0.85, None),
     # the same line three times, in C, F and G: MIDI notes 36 / 41 / 43 move the key
     ('saw_midi_key_c_f_g',  PENT,     SAW,    [0, 2, 5, 3, 0, 5, 7, 4], 1300, 0,    0.5,  0.5,
      [36] * 8 + [41] * 8 + [43] * 8),
