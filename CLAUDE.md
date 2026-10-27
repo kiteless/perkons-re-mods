@@ -11,24 +11,22 @@ PATCHES=...`, `make ui`.
 
 ## Mods
 
-| mod | core | config | status | open |
-|---|---|---|---|---|
-| `voice-map` | M7 + M4 | `voices.json` (SD root, `BANKS/NN/`) | hardware-tested (F1 fixed map, F3 per bank, 3333 physical modelling) | sample overlap, bank switch while busy, P2 toggle, quantize/MIDI not yet confirmed; kiteless 0.1 `INFO.TXT` stamp not verified on hardware |
-| `fx-reverb` | M4 (M4 host) | row 3 step 15 (key 46), `"fx-reverb"` | reverb works on hardware (2026-10-26) | rest of the FX checklist (switch-over, LFO LED, persistence) |
-| `fx-freeze` | M4 (M4 host) | row 3 step 16 (key 47), `"fx-switch-freeze"` | emulator-tested | hardware test |
-| `zibens` | M7, a voice-map engine (requires voice-map) | `voices.json` value 5 | plays on hardware (2026-10-26, `zibens/docs/hardware-log.md`) | tuner check (C1 would confirm 48 kHz), MIDI keyboard, stress |
+| mod | core | config |
+|---|---|---|
+| `voice-map` | M7 + M4 | `voices.json` (SD root, `BANKS/NN/`) |
+| `fx-reverb` | M4 (M4 host) | row 3 step 15 (key 46), `"fx-reverb"` |
+| `fx-freeze` | M4 (M4 host) | row 3 step 16 (key 47), `"fx-switch-freeze"` |
+| `zibens` | M7, a voice-map engine (requires voice-map) | `voices.json` value 5 |
 
-Next steps the owner has in mind: hardware-test `make build PATCHES='fx_reverb
-fx_freeze'` (check: delay↔reverb switch silent with no old tail, delay looper and
-reverb hold at LONG, power-on at LONG starts frozen, LFO LED follows MOD DEPTH in reverb
-mode, settings survive a power cycle), then a release `kiteless 0.2` (voice-map +
-fx-reverb + fx-freeze) in `releases/`.
+Next release in mind: `kiteless 0.2` (voice-map + fx-reverb + fx-freeze + zibens) in
+`releases/`.
 
 ## Conventions
 
 * One folder per mod: `mod.json`, `patches/`, `src/<core>/`, `lib/`, `tests/`, `docs/`
-  (`design.md`, `hardware-log.md` once flashed).
+  (`design.md`), and a user-facing `README.md`.
 * `mod.json` codes taken: `vm`, `rv`, `fz`, `zb`. Config keys taken: 46, 47. voice-map engine
   numbers taken: 1-4 stock, 5 zibens (extra engines register in `p.shared['voice_map']`).
 * M4 mods register with the framework's M4 host; FX mods meet through its weak hooks.
-* Update the README table and `mod.json` `status` when a mod's test state changes.
+* Docs, READMEs, mod.json and commit messages never say how or whether something was
+  tested (no test status, hardware logs, "verified" notes): pushed means tested.

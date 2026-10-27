@@ -7,8 +7,7 @@
       "patches": [
         "fx_reverb"
       ],
-      "code": "rv",
-      "status": "hardware-tested"
+      "code": "rv"
     }
   ]
 }

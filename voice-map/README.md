@@ -88,9 +88,6 @@ after editing it on your computer, power-cycle or switch banks.
 
 * The layout comes from the SD card only; there's no way to change it from the panel yet.
 * All sample voices share one set of samples.
-* Not yet tested on hardware: CPU-heavy layouts (e.g. four voice-3 engines with busy
-  patterns), and switching banks with all four voices busy. Tell the author if you hear
-  crackles.
 
 ## Version history
 

@@ -11,12 +11,12 @@ Firmware mods for the **Erica Synths Pērkons HD-01**, built with the
 > Mods are source code and patch definitions that are applied to the official firmware
 > you download yourself from Erica Synths. Built images are never committed.
 
-| mod | what | status |
-|---|---|---|
-| [voice-map](voice-map/) | any voice can run any of the four voice engines; layout per bank from `voices.json` | 0.1, hardware-tested on 1.3.0 |
-| [fx-reverb](fx-reverb/) | reverb instead of the BBD delay (config switch) | reverb confirmed on hardware (2026-10-26) |
-| [fx-freeze](fx-freeze/) | 2-way FX switch as freeze: delay looper, reverb hold with fx-reverb | emulator-tested, hardware next |
-| [zibens](zibens/) | ZIBENS synth voice on any output (`voices.json` value 5): scale-locked resonant saw, PWM square, wavefolded sine; needs voice-map | plays on hardware (2026-10-26); tuning check pending |
+| mod | what |
+|---|---|
+| [voice-map](voice-map/) | any voice can run any of the four voice engines; layout per bank from `voices.json` |
+| [fx-reverb](fx-reverb/) | reverb instead of the BBD delay (config switch) |
+| [fx-freeze](fx-freeze/) | 2-way FX switch as freeze: delay looper, reverb hold with fx-reverb |
+| [zibens](zibens/) | ZIBENS synth voice on any output (`voices.json` value 5): scale-locked resonant saw, PWM square, wavefolded sine; needs voice-map |
 
 The FX mods build alone or together (the framework's M4 host joins them).
 

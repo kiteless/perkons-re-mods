@@ -4,9 +4,10 @@
       "id": "fx-freeze",
       "title": "FX FREEZE",
       "summary": "The FX 2-way switch as freeze, chosen on config row 3 step 16: LONG freezes. Loops the delay; holds the reverb tail with FX REVERB.",
-      "patches": ["fx_freeze"],
-      "code": "fz",
-      "status": "emulator-tested"
+      "patches": [
+        "fx_freeze"
+      ],
+      "code": "fz"
     }
   ]
 }

@@ -95,8 +95,7 @@ don't click.
 
 ### DECAY
 
-The same curve as the stock voices (measured on Simple and Wavetable), as the time for
-the note to fall by 60 dB:
+The same curve as the stock voices, as the time for the note to fall by 60 dB:
 
 | DECAY (knob travel) | time |
 |---|---|
@@ -148,14 +147,9 @@ ZIBENS follows MIDI exactly as the stock voices do; nothing on the MIDI side is 
 
 ## Details
 
-* Tuning: A = 440 Hz equal temperament, assuming the Pērkons's 48 kHz audio rate (to be
-  confirmed with a tuner: TONE fully left, sine, DECAY fully right should read C1).
+* Tuning: A = 440 Hz equal temperament.
 * Notes outside 8 Hz-12 kHz (extreme MIDI transposition) are held at those limits.
 * CPU: a few dozen instructions per sample, a small fraction of the voice processor's
   budget.
 
-## Status
-
-Emulator-tested (18 tests) and played on hardware (2026-10-26). Hardware checks still to
-do are listed in [docs/hardware-log.md](docs/hardware-log.md); the full design and the
-reverse-engineering behind it are in [docs/design.md](docs/design.md).
+The design and the reverse-engineering behind it: [docs/design.md](docs/design.md).

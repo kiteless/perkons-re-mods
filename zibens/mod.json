@@ -8,7 +8,6 @@
         "zibens"
       ],
       "code": "zb",
-      "status": "hardware-tested",
       "requires": [
         "voice-map"
       ]
