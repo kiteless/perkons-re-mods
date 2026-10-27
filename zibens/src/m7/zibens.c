@@ -10,7 +10,8 @@
  *   DECAY (param 1)   amplitude decay, the stock voices' curve (max = no decay)
  *   PARAM1 (param 2)  attack, ~0.5 ms .. ~2 s
  *   PARAM2 (param 3)  saw: resonance of the digital MS filter (only saw has it);
- *                     square: pulse width; sine: wavefold
+ *                     square: pulse width; sine: fold macro (depth, follows the
+ *                     envelope, with symmetry)
  *   ALGO              minor pentatonic / Dorian / Phrygian (positions 1 / 2 / 3)
  *   MODE              saw / square / sine (positions 1 / 2 / 3)
  *   trigger note      transposes: + (note - 36) semitones, as on the stock voices
@@ -62,6 +63,8 @@ typedef struct {
     int32_t wave;
     int32_t stage;
     pole_t lp1, lp2, hp1;               /* Korg-35 low-pass */
+    float fold_prev;                    /* sine folder: last 2x sub-sample */
+    float dc_x, dc_y;                   /* sine folder: DC blocker */
 } zb_t;
 
 _Static_assert(__builtin_offsetof(zb_t, algo) == OFF_cVoice_algo, "algo");
@@ -139,15 +142,15 @@ static inline float blep(float t, float dt)
     return 0.0f;
 }
 
-/* triangle folder: identity on [-1, 1], reflects beyond */
-static inline float fold(float v)
+/* smooth folder (Serge / Buchla style): sin(pi/2 * x). Gentle saturation within
+ * [-1, 1], smooth folds beyond it, any number of them */
+static inline float sfold(float x)
 {
-    float t = (v - 1.0f) * 0.25f;
-    t -= (float)(int32_t)t;
-    if (t < 0.0f)
-        t += 1.0f;
-    float y = 4.0f * t - 2.0f;
-    return (y < 0.0f ? -y : y) - 1.0f;
+    float p = x * 0.25f;                        /* sin(pi/2 x) = sin(2 pi * x/4) */
+    p -= (float)(int32_t)p;
+    if (p < 0.0f)
+        p += 1.0f;
+    return sin2pi(p);
 }
 
 static inline float knob(const zb_t *z, int k)
@@ -234,6 +237,7 @@ static void trigger(cVoice *v)
     if (z->stage == IDLE || z->env < 1e-4f) {
         z->phase = 0.0f;
         z->lp1.z1 = z->lp2.z1 = z->hp1.z1 = 0.0f;
+        z->fold_prev = z->dc_x = z->dc_y = 0.0f;
     }
     z->amp = (float)z->velocity * (1.0f / 127.0f);
     z->stage = ATTACK;                  /* from the current level: no click on retrigger */
@@ -262,6 +266,35 @@ static inline float pole_lp(pole_t *p, float x)
     return lp;
 }
 
+/* The sine's fold macro (PARAM2 = z->extra). The fold depth follows the amplitude
+ * envelope, so notes start folded and relax towards a sine as they decay (the
+ * West Coast pluck); PARAM2 sets the peak depth and adds symmetry (a bias before the
+ * fold: even harmonics). Two smooth stages, up to ~16x; 2x oversampled. */
+static float folded_sine(zb_t *z, float p, float dt)
+{
+    if (z->extra <= 0.0f) {                     /* PARAM2 at 0: a pure sine, folder idle */
+        z->fold_prev = z->dc_x = z->dc_y = 0.0f;
+        return sin2pi(p);
+    }
+    float a = z->extra * z->env;                /* fold amount now */
+    float g1 = 1.0f + 7.0f * a, g2 = 1.0f + a;  /* stage gains: 8x then 2x at the peak */
+    float bias = 0.35f * a;                     /* symmetry */
+    float h = p - 0.5f * dt;                    /* the 2x sub-sample half a step back */
+    if (h < 0.0f)
+        h += 1.0f;
+    float s = sin2pi(p);
+    float f0 = sfold(g2 * sfold(g1 * sin2pi(h) + bias));
+    float f1 = sfold(g2 * sfold(g1 * s + bias));
+    float y = 0.25f * z->fold_prev + 0.5f * f0 + 0.25f * f1;   /* decimate 2x -> 1x */
+    z->fold_prev = f1;
+    float wet = clampf(z->extra * 10.0f, 0.0f, 1.0f);          /* fade in over the knob's first 10% */
+    y = s + (y - s) * wet;
+    float o = y - z->dc_x + 0.99869f * z->dc_y;                /* DC blocker, ~10 Hz */
+    z->dc_x = y;
+    z->dc_y = o;
+    return o;
+}
+
 static float oscillator(zb_t *z)
 {
     float dt = z->inc, p = z->phase, s;
@@ -274,9 +307,7 @@ static float oscillator(zb_t *z)
             q -= 1.0f;
         s = (p < pw ? 1.0f : -1.0f) + blep(p, dt) - blep(q, dt);
     } else {
-        s = sin2pi(p);
-        if (z->extra > 0.0f)                                    /* wavefold */
-            s = fold(s * (1.0f + 7.0f * z->extra));
+        s = folded_sine(z, p, dt);
     }
     p += dt;
     z->phase = p >= 1.0f ? p - 1.0f : p;

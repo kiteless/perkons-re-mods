@@ -73,13 +73,22 @@ between, the knob is divided evenly into the scale's notes.
 |---|---|---|
 | position 1 | **saw**, bright and buzzy | **resonance** of the saw's MS filter: clean → squelchy → screaming (just short of self-oscillation) |
 | position 2 | **square**, hollow and woody | **pulse width**: 50% (square) → about 10% (thin, nasal) |
-| position 3 | **sine**, pure and round | **wavefold**: pure sine → reedy → brassy → buzzy (up to 8× folding) |
+| position 3 | **sine**, pure and round | **wavefold**: pure sine → reedy → brassy → buzzy and lopsided (up to ~16× folding); the fold moves with each note (below) |
 
 **The saw's filter.** Only the saw goes through ZIBENS's own resonant low-pass (an
 MS-style, saturating two-pole filter). Its cutoff follows the note and the envelope: on
 each hit it opens to about 32× the note's frequency and closes towards 2× as the note
 decays. That's the squelch, and PARAM2 sets how much resonance rides on it. Square and
 sine have no extra filter: the voice's analog filter (CUTOFF) is their only filter.
+
+**The sine's fold.** PARAM2 sets how far the sine folds at the peak of each note, and the
+fold follows the same envelope as the volume (PARAM1 attack, DECAY): a note starts
+folded and bright and relaxes towards a round sine as it decays, the West Coast pluck.
+A slow attack swells the fold in with the note; with DECAY fully right the note holds,
+so the fold stays at the PARAM2 setting. Turning PARAM2 up also makes the fold
+increasingly asymmetrical (even harmonics: hollower, growlier). The folding is smooth
+and done in two stages, like the classic Serge and Buchla folders, and oversampled so
+heavy settings stay clean. PARAM2 fully left is a pure sine.
 
 ### PARAM1: attack
 
@@ -139,6 +148,8 @@ ZIBENS follows MIDI exactly as the stock voices do; nothing on the MIDI side is 
 * **Acid line**: saw, Phrygian, PARAM2 most of the way up, short-to-medium DECAY, CUTOFF
   open; sequence TONE per step.
 * **Sub bass**: sine, PARAM2 fully left, TONE low, DECAY to taste; add DRIVE for grit.
+* **West Coast pluck**: sine, PARAM2 most of the way up, short DECAY; each hit snaps from
+  buzzy to round.
 * **Nasal lead**: square, PARAM2 towards the right (narrow pulse), filter in BP mode.
 * **Pad / drone**: any waveform, PARAM1 towards the right, DECAY fully right; play notes
   over MIDI to change key.
