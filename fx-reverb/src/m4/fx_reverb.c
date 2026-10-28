@@ -22,10 +22,11 @@
 
 _Static_assert(RV_SIZE == PK_FX_BUF_LEN, "reverb lines are the shared FX buffer");
 
-uint8_t pk_cfg_reverb;              /* system/mods.json "fx-reverb", config row 3 step 15 */
-uint8_t pk_reverb_active;           /* engine currently running */
+/* settings and control state: AXI SRAM; what the audio loop walks: patch RAM */
+PK_AXI uint8_t pk_cfg_reverb;       /* system/mods.json "fx-reverb", config row 3 step 15 */
+PK_AXI uint8_t pk_reverb_active;    /* engine currently running */
+PK_AXI static int32_t clear_pos;    /* >= 0 while clearing buffers for a switch-over */
 
-static int32_t clear_pos;           /* >= 0 while clearing buffers for a switch-over */
 static rv_t rv;
 static int32_t pd_w;
 static float pd_delay;              /* current pre-delay, samples (slewed); < 0: snap */

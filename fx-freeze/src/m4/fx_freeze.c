@@ -17,11 +17,12 @@
 #define LEVEL_SHORT     ((int)CONST_fx_switch_short_level)
 #define LEVEL_FREEZE    (!LEVEL_SHORT)  /* LONG */
 
-uint8_t pk_cfg_freeze;              /* system/mods.json "fx-switch-freeze", config row 3 step 16 */
-uint8_t pk_frozen;                  /* delay looper engaged */
-int32_t pk_loop_len;
+/* settings and control state: AXI SRAM; what the audio loop walks: patch RAM */
+PK_AXI uint8_t pk_cfg_freeze;       /* system/mods.json "fx-switch-freeze", config row 3 step 16 */
+PK_AXI uint8_t pk_frozen;           /* delay looper engaged */
+PK_AXI static uint8_t switch_level; /* physical switch, last read */
 
-static uint8_t switch_level;        /* physical switch, last read */
+int32_t pk_loop_len;
 static int32_t rec_w, loop_start, loop_pos;
 static int32_t release;             /* crossfade counter after unfreezing */
 
