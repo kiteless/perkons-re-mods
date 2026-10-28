@@ -6,7 +6,7 @@
  * offsets, and the vtable has the four methods the firmware calls (trigger, init,
  * update, render). See docs/design.md.
  *
- *   TONE (param 0)    note, stepped through the scale (ALGO), 4 octaves from C1
+ *   TUNE (param 0)    note, stepped through the scale (ALGO), 4 octaves from C1
  *   DECAY (param 1)   amplitude decay, the stock voices' curve (max = no decay)
  *   PARAM1 (param 2)  attack, ~0.5 ms .. ~2 s
  *   PARAM2 (param 3)  saw: resonance of the digital MS filter (only saw has it);
@@ -20,9 +20,9 @@
 
 #define SR              48000.0f
 #define NOTE_REF        36          /* trigger note meaning "no transposition" */
-#define BASE_NOTE       24          /* TONE at minimum: C1 */
+#define BASE_NOTE       24          /* TUNE at minimum: C1 */
 #define OCTAVES         4
-#define HYST            0.2f        /* TONE hysteresis, fraction of a step each side */
+#define HYST            0.2f        /* TUNE hysteresis, fraction of a step each side */
 #define LEVEL           8000.0f     /* peak at velocity 127, like the stock tonal voices */
 #define PI              3.14159265f
 #define MAGIC           0x5a49424eu /* 'ZIBN' */
@@ -44,7 +44,7 @@ typedef struct {
     const cVoice_vtbl *vtbl;            /* +0x00 */
     uint8_t algo, mode, velocity, note; /* +0x04 .. +0x07 (written by the firmware) */
     uint32_t magic;                     /* +0x08 */
-    int32_t *param[4];                  /* +0x0c TONE, DECAY, PARAM1, PARAM2 */
+    int32_t *param[4];                  /* +0x0c TUNE, DECAY, PARAM1, PARAM2 */
     uint8_t base_pad[0xb8 - 0x1c];
     uint8_t mute;                       /* +0xb8 (written by the firmware) */
     uint8_t pad[3];
@@ -57,7 +57,7 @@ typedef struct {
     float amp;                          /* velocity scale */
     float k;                            /* saw: filter resonance (Korg-35 K, 0..~2) */
     float extra;                        /* square: pulse width, sine: fold, 0..1 */
-    float step_pos;                     /* quantised TONE step (hysteresis memory) */
+    float step_pos;                     /* quantised TUNE step (hysteresis memory) */
     int32_t scale_id;                   /* scale the step belongs to */
     int32_t wave;
     int32_t stage;
@@ -196,7 +196,7 @@ static void update(cVoice *v)
     if (z->magic != MAGIC)
         return;
 
-    /* TONE: position along the scale, quantised with hysteresis */
+    /* TUNE: position along the scale, quantised with hysteresis */
     int len;
     const int8_t *sc = scale_of(z->algo, &len);
     int steps = OCTAVES * len;                                  /* top C included: steps + 1 notes */

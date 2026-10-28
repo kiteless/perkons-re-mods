@@ -5,7 +5,7 @@ callback) to WAV files for listening.
   cd ../perkons && .venv/bin/python ../perkons-re-mods/zibens/tools/render_demo.py [out_dir]
 
 Writes <out_dir>/NN_name.wav (default ../perkons/out/zibens). Each phrase is a short
-sequence of triggers with TONE stepping through the scale, like a sequenced bassline.
+sequence of triggers with TUNE stepping through the scale, like a sequenced bassline.
 """
 import os
 import sys
@@ -24,7 +24,7 @@ SAW, SQUARE, SINE = 1, 0, 2
 PENT, DORIAN, PHRYGIAN = 1, 0, 2
 STEP = 6000                      # frames per sequencer step (1/16 at 120 BPM)
 
-# (name, scale, wave, [TONE steps], DECAY, PARAM1, PARAM2 start, PARAM2 end, MIDI notes)
+# (name, scale, wave, [TUNE steps], DECAY, PARAM1, PARAM2 start, PARAM2 end, MIDI notes)
 PHRASES = [
     ('saw_pent_dry',        PENT,     SAW,    [0, 2, 5, 3, 0, 5, 7, 4], 1300, 0,    0.0,  0.0, None),
     ('saw_pent_res_sweep',  PENT,     SAW,    [0, 2, 5, 3, 0, 5, 7, 4], 1300, 0,    0.0,  1.0, None),

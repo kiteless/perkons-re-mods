@@ -30,7 +30,7 @@ drive, FX send and level all stay with the voice; only the sound engine changes.
 ## At a glance
 
 ```
-TONE ──► note in the scale ─┐
+TUNE ──► note in the scale ─┐
 MIDI note ──► transpose ────┤
                             ▼
             ┌─ saw ──► resonant MS filter (PARAM2) ─┐
@@ -44,7 +44,7 @@ MIDI note ──► transpose ────┤
 
 | control | what it does |
 |---|---|
-| **TONE** | picks the note, stepping through the scale chosen by ALGO. No glide: notes jump. |
+| **TUNE** | picks the note, stepping through the scale chosen by ALGO. No glide: notes jump. |
 | **DECAY** | how long the note rings, the same range as the stock voices; fully right holds the note forever (drone) |
 | **ALGO** (top switch) | the scale |
 | **MODE** (bottom switch) | the waveform |
@@ -54,13 +54,13 @@ MIDI note ──► transpose ────┤
 
 Switch positions are numbered as in the Pērkons manual's voice tables (positions 1, 2, 3).
 
-### TONE and the scales
+### TUNE and the scales
 
 All three scales are rooted on C (before any MIDI transposition) and span **four
-octaves, C1 to C5**. TONE fully left is C1 (32.7 Hz), fully right is C5 (523 Hz); in
+octaves, C1 to C5**. TUNE fully left is C1 (32.7 Hz), fully right is C5 (523 Hz); in
 between, the knob is divided evenly into the scale's notes.
 
-| ALGO | scale | notes in each octave | positions on TONE | character |
+| ALGO | scale | notes in each octave | positions on TUNE | character |
 |---|---|---|---|---|
 | position 1 | **minor pentatonic** | C E♭ F G B♭ | 21 | no wrong notes: basslines, hooks |
 | position 2 | **Dorian** | C D E♭ F G A B♭ | 29 | minor but warm: deep house, dub techno |
@@ -68,10 +68,10 @@ between, the knob is divided evenly into the scale's notes.
 
 * Each note has a small dead zone around it (about 20% of a step either side), so knob
   jitter never flips a note.
-* TONE is read continuously, like TUNE on the stock voices: turning it while a note rings
-  changes the pitch at once, in steps. Sequenced TONE values and parameter locks work as
+* TUNE is read continuously, as on the stock voices: turning it while a note rings
+  changes the pitch at once, in steps. Sequenced TUNE values and parameter locks work as
   on any voice.
-* Switching scales re-reads TONE in the new scale, so the same knob position may give a
+* Switching scales re-reads TUNE in the new scale, so the same knob position may give a
   different note.
 
 ### MODE: the waveforms, and what PARAM2 does on each
@@ -133,8 +133,8 @@ ZIBENS follows MIDI exactly as the stock voices do; nothing on the MIDI side is 
 * **Notes transpose it.** Note 36 (the note the trigger keys and pads send) means no
   change; each note above or below moves it by a semitone. **Pure transposition**:
   incoming notes are not forced into the scale.
-  * With TONE on the scale's root (C), a keyboard plays ZIBENS chromatically.
-  * With TONE elsewhere, the note shifts the whole scale: playing F (note 41) moves a C
+  * With TUNE on the scale's root (C), a keyboard plays ZIBENS chromatically.
+  * With TUNE elsewhere, the note shifts the whole scale: playing F (note 41) moves a C
     minor-pentatonic line up to F minor pentatonic.
 * **Multi-channel MIDI mode** (voice 1 = channel 1, and so on): any note on the voice's
   channel plays it at that pitch, and notes can be recorded into steps or entered with a
@@ -144,17 +144,17 @@ ZIBENS follows MIDI exactly as the stock voices do; nothing on the MIDI side is 
   MIDI in this mode sounds 1, 2 or 3 semitones higher than from its own trigger key
   (stock behaviour, inherited).
 * A trigger with no note (note 0) keeps the previous note.
-* MIDI CCs for TUNE (= TONE), DECAY, PARAM1, PARAM2, ALGO and MODE work as on any voice.
+* MIDI CCs for TUNE, DECAY, PARAM1, PARAM2, ALGO and MODE work as on any voice.
 
 ## Tips
 
 * **Acid line**: saw, Phrygian, PARAM2 most of the way up, short-to-medium DECAY, CUTOFF
-  open; sequence TONE per step.
-* **Sub bass**: sine, PARAM2 fully left, TONE low, DECAY to taste; add DRIVE for grit.
+  open; sequence TUNE per step.
+* **Sub bass**: sine, PARAM2 fully left, TUNE low, DECAY to taste; add DRIVE for grit.
 * **Nasal lead**: square, PARAM2 towards the right (narrow pulse), filter in BP mode.
 * **Pad / drone**: any waveform, PARAM1 towards the right, DECAY fully right; play notes
   over MIDI to change key.
-* **Live key changes**: keep TONE patterns in the sequencer and play single MIDI notes to
+* **Live key changes**: keep TUNE patterns in the sequencer and play single MIDI notes to
   move the key.
 
 ## Details
