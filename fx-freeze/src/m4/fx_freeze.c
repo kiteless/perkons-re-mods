@@ -17,7 +17,7 @@
 #define LEVEL_SHORT     ((int)CONST_fx_switch_short_level)
 #define LEVEL_FREEZE    (!LEVEL_SHORT)  /* LONG */
 
-uint8_t pk_cfg_freeze;              /* device.json "fx-switch-freeze", config row 3 step 16 */
+uint8_t pk_cfg_freeze;              /* system/mods.json "fx-switch-freeze", config row 3 step 16 */
 uint8_t pk_frozen;                  /* delay looper engaged */
 int32_t pk_loop_len;
 

@@ -132,9 +132,9 @@ class TestFxReverb(unittest.TestCase):
         rises = sum(1 for a, b in zip(v, v[1:]) if b > a)
         self.assertTrue(0.2 < rises / len(v) < 0.8, 'goes up and down')
 
-    def test_device_json_key_loads(self):
+    def test_setting_loads_from_mods_json(self):
         from perkons.emu import M4Emu
-        sd = {'system/device.json': b'{"vintage-bbd": true, "fx-reverb": true}'}
+        sd = {'system/device.json': b'{"vintage-bbd": true}', 'system/mods.json': b'{"fx-reverb": true}'}
         e = M4Emu(self.img.segment('m4').data, self.s4, self.img.segment('m7').data, sd=sd).boot()
         e.call(self.syms['pk4_boot'], max_insns=50_000_000)
         self.assertEqual(e.r8(self.syms['pk_cfg_reverb']), 1)

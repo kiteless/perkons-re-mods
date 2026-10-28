@@ -109,9 +109,10 @@ class TestFxFreeze(unittest.TestCase):
         other, _ = build_patched(self.stock, ['fx_freeze', 'fx_reverb'], self.tmp + '/c')
         self.assertEqual(other.segment('m4').data, self.both.segment('m4').data)
 
-    def test_device_json_keys_load(self):
+    def test_settings_load_from_mods_json(self):
         s = self.both_syms
-        sd = {'system/device.json': b'{"vintage-bbd": true, "fx-reverb": true, "fx-switch-freeze": true}'}
+        sd = {'system/device.json': b'{"vintage-bbd": true}',
+              'system/mods.json': b'{"fx-reverb": true, "fx-switch-freeze": true}'}
         e = M4Emu(self.both.segment('m4').data, self.s4, self.both.segment('m7').data, sd=sd).boot()
         e.call(s['pk4_boot'], max_insns=50_000_000)
         self.assertEqual((e.r8(s['pk_cfg_reverb']), e.r8(s['pk_cfg_freeze'])), (1, 1))

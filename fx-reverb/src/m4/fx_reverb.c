@@ -22,7 +22,7 @@
 
 _Static_assert(RV_SIZE == PK_FX_BUF_LEN, "reverb lines are the shared FX buffer");
 
-uint8_t pk_cfg_reverb;              /* device.json "fx-reverb", config row 3 step 15 */
+uint8_t pk_cfg_reverb;              /* system/mods.json "fx-reverb", config row 3 step 15 */
 uint8_t pk_reverb_active;           /* engine currently running */
 
 static int32_t clear_pos;           /* >= 0 while clearing buffers for a switch-over */
@@ -46,7 +46,7 @@ static float clampf(float x, float lo, float hi)
     return x < lo ? lo : (x > hi ? hi : x);
 }
 
-/* boot, before device.json loads (state is already zeroed) */
+/* boot, before the settings files load (state is already zeroed) */
 void pk_reverb_init(void)
 {
     clear_pos = -1;
