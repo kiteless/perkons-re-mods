@@ -1,4 +1,4 @@
-"""ZIBENS on the M7, through main()'s message loop and the real audio callback, as a
+"""Zibens on the M7, through main()'s message loop and the real audio callback, as a
 voice-map engine (config message type 4 puts it on an output). Needs arm-none-eabi-gcc."""
 import math
 import shutil
@@ -71,7 +71,7 @@ class TestZibens(unittest.TestCase):
 
     # -- helpers -------------------------------------------------------------------------
     def machine(self, out=0):
-        """Booted M7 with ZIBENS on `out` (map value 4 = voices.json 5)."""
+        """Booted M7 with Zibens on `out` (map value 4 = voices.json 5)."""
         e = verify.boot(self.img, self.sym)
         m = [0, 1, 2, 3]
         m[out] = 4
@@ -107,7 +107,7 @@ class TestZibens(unittest.TestCase):
         self.assertEqual(e.class_of(e.slot(2)), 'cThirdSlot')
 
     def test_voices_json_name_selects_zibens(self):
-        """M4: "zibens" in voices.json -> map message -> M7 runs ZIBENS on that output."""
+        """M4: "zibens" in voices.json -> map message -> M7 runs Zibens on that output."""
         s4 = Symbols(SYMBOLS_V130.replace('-m7.json', '-m4.json'))
         sd = {'voices.json': b'{"voice1": "voice1", "voice2": "voice4", "voice3": "zibens"}'}
         e4 = M4Emu(self.img.segment('m4').data, s4, self.img.segment('m7').data, sd=sd).boot()
@@ -272,5 +272,5 @@ class TestZibens(unittest.TestCase):
             counts.append(m.insn_count / 960)
             m.count_insns(False)
         extra = counts[0] - counts[1]
-        print(f'\nZIBENS: ~{extra:.0f} instructions per sample more than stock output 1')
+        print(f'\nZibens: ~{extra:.0f} instructions per sample more than stock output 1')
         self.assertLess(extra, 800)

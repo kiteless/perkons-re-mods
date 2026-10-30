@@ -1,0 +1,13 @@
+{
+  "options": [
+    {
+      "id": "eight-tracks",
+      "title": "8 TRACKS",
+      "summary": "FOUR MORE SEQUENCER TRACKS, 5-8, ON A SECOND PAGE (SHIFT + PATTERN). MIDI ONLY: THEY SEND NOTES AND CCS ON THEIR OWN CHANNELS.",
+      "patches": [
+        "eight_lanes"
+      ],
+      "code": "et"
+    }
+  ]
+}

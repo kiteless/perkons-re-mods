@@ -2,7 +2,7 @@
   "options": [
     {
       "id": "zibens",
-      "title": "ZIBENS",
+      "title": "Zibens",
       "summary": "A NEW SYNTH VOICE. SCALE-LOCKED RESONANT SAW, PWM SQUARE, AND WAVEFOLDED SINE. TOP SWITCH SELECTS SCALE, BOTTOM WAVEFORM.",
       "patches": [
         "zibens"

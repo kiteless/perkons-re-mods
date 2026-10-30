@@ -2,7 +2,7 @@
 
 Run any of the Pērkons' four voice engines on any of its four voices (four sample
 voices, two kicks and two snares, whatever you like), plus engines other mods add, such
-as the [ZIBENS](../zibens/) synth voice. Choose the layout per bank with a
+as the [Zibens](../zibens/) synth voice. Choose the layout per bank with a
 small text file on the SD card, the same way per-bank samples work in firmware 1.3.
 
 Based on official Pērkons firmware **1.3.0**. Unofficial; not affiliated with Erica Synths.
@@ -33,7 +33,7 @@ Each key is a voice (track/output 1-4). Each value names the engine it should ru
 | `"voice2"` | stock voice 2's engine | Fold Drum 2 / Wavetable / Complex |
 | `"voice3"` | stock voice 3's engine | Resonant drums / Slap / Karplus–Chord |
 | `"voice4"` | stock voice 4's engine | Noise hat / Noise–tone / Acoustic hats (samples) |
-| `"zibens"` | the [ZIBENS](../zibens/) synth voice (builds that include it) | scale: minor pentatonic / Dorian / Phrygian |
+| `"zibens"` | the [Zibens](../zibens/) synth voice (builds that include it) | scale: minor pentatonic / Dorian / Phrygian |
 
 The ALGO and MODE switches, knobs, trigger input, output jack, filter and drive of each
 voice work as usual; only the sound engine behind them changes.

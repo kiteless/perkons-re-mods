@@ -1,0 +1,376 @@
+{
+  "_comment": "eight-lanes: addresses this mod needs beyond symbols/v1.3.0-m4.json; merged into p.symbols['m4'] by patches/eight_lanes.py",
+  "functions": {
+    "seq_tick": "0x08101d04",
+    "seq_setup": "0x081019f0",
+    "seq_queue": "0x0810dadc",
+    "pat_save": "0x08102158",
+    "pat_clear": "0x08102208",
+    "pat_switch_done": "0x08101108",
+    "f_unlink": "0x0811e52c",
+    "seq_record": "0x08102fc0",
+    "seq_clear_slot": "0x0810c564",
+    "voice_play": "0x0810210c",
+    "trig_active": "0x08102134",
+    "ui_update": "0x08103b98",
+    "set_mode": "0x08104098",
+    "get_mode": "0x081040a4",
+    "key_held": "0x0810b740",
+    "voice_state": "0x0810dabc",
+    "page0_render": "0x08105504",
+    "steps_held": "0x0810b784",
+    "key_event": "0x08103580",
+    "midi_page_event": "0x0810688c",
+    "midi_page_render": "0x081067b8",
+    "kit_load": "0x081023d8",
+    "kit_save": "0x08102284",
+    "midi_dispatch": "0x0810443c",
+    "midi_note_on": "0x0810310c",
+    "midi_note_off": "0x081030d8",
+    "held_first": "0x0810b794",
+    "held_next": "0x0810b7a4",
+    "store_values": "0x0810ca1c",
+    "after_store_values": "0x081097b8",
+    "midi_out_bytes": "0x0810aaf4",
+    "cc_map": "0x08104310",
+    "mod_values": "0x0810175c",
+    "roll_hold": "0x081029c8",
+    "roll_rate_set": "0x081029dc",
+    "roll_rate_get": "0x081029f0"
+  },
+  "globals": {
+    "seq_ptr": "0x1002e6e4",
+    "seq_notes": "0x1000011c",
+    "track_template": "0x10001864",
+    "pat_headers": "0x100026d0",
+    "pat_blocks": "0x10002ed0",
+    "switch_record": "0x10001d6c",
+    "bank_number": "0x100283cc",
+    "midi_page_multi": "0x1002c7e7",
+    "midi_page_dirty": "0x1002c7e6",
+    "kits": "0x10025ad4",
+    "current_kit": "0x10025ad0",
+    "rec_flags": "0x100284ac",
+    "roll_periods": "0x08127838",
+    "roll_gates": "0x08127828"
+  },
+  "constants": {
+    "track_block": "0x22c",
+    "track_state": "0x10c",
+    "note_rec": "0xc"
+  },
+  "sites": {
+    "clock.tick_fnptr": {
+      "addr": "0x0812bdf8",
+      "word": "0x08101d05",
+      "_note": ".data image word: clock_state+0x3c (sequencer tick callback, 0x100006c8 in RAM)"
+    },
+    "notes.lit_prepare": {
+      "addr": "0x081019e4",
+      "word": "0x1000011c",
+      "_note": "per-track note/velocity records: the step code that fills them"
+    },
+    "notes.lit_send_triggers": {
+      "addr": "0x08101cfc",
+      "word": "0x1000011c"
+    },
+    "notes.lit_fn_08102134": {
+      "addr": "0x08102154",
+      "word": "0x1000011c"
+    },
+    "seq_queue.entry": {
+      "addr": "0x0810dadc",
+      "bytes": "014b1b68",
+      "_note": "FUN_0810dadc (queue next pattern: seq+0xc = header), first instruction -> b.w pk_el_queue"
+    },
+    "main.call_switch_done": {
+      "addr": "0x08100f0c",
+      "call": "pat_switch_done",
+      "_note": "main loop: revert the pattern left / snapshot the new one"
+    },
+    "patpage.call_save_a": {
+      "addr": "0x08105a72",
+      "call": "pat_save"
+    },
+    "patpage.call_save_b": {
+      "addr": "0x08105ac4",
+      "call": "pat_save"
+    },
+    "patpage.call_clear": {
+      "addr": "0x08105aa8",
+      "call": "pat_clear"
+    },
+    "switch_bank.call_bank_prepare": {
+      "addr": "0x081025b0",
+      "call": "bank_prepare"
+    },
+    "boot_load_last_bank.call_bank_prepare": {
+      "addr": "0x081026b8",
+      "call": "bank_prepare"
+    },
+    "pageb.ui_vs.08104fcc": {
+      "addr": "0x08104fcc",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.08105046": {
+      "addr": "0x08105046",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.081050e0": {
+      "addr": "0x081050e0",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.0810510c": {
+      "addr": "0x0810510c",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.081051c4": {
+      "addr": "0x081051c4",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.08105290": {
+      "addr": "0x08105290",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.08105372": {
+      "addr": "0x08105372",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.081053ea": {
+      "addr": "0x081053ea",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.08105420": {
+      "addr": "0x08105420",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.08105512": {
+      "addr": "0x08105512",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.081055b0": {
+      "addr": "0x081055b0",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.081057ba": {
+      "addr": "0x081057ba",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.081057e8": {
+      "addr": "0x081057e8",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.0810584e": {
+      "addr": "0x0810584e",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.081056d2": {
+      "addr": "0x081056d2",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.08105910": {
+      "addr": "0x08105910",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.0810589c": {
+      "addr": "0x0810589c",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.08105ad4": {
+      "addr": "0x08105ad4",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.081065c8": {
+      "addr": "0x081065c8",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.08106558": {
+      "addr": "0x08106558",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.08106a3c": {
+      "addr": "0x08106a3c",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.08103618": {
+      "addr": "0x08103618",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.08103a02": {
+      "addr": "0x08103a02",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.08103c3e": {
+      "addr": "0x08103c3e",
+      "call": "voice_state"
+    },
+    "pageb.ui_vs.08103c56": {
+      "addr": "0x08103c56",
+      "call": "voice_state"
+    },
+    "pageb.record.081036a6": {
+      "addr": "0x081036a6",
+      "call": "seq_record"
+    },
+    "pageb.record.08103de6": {
+      "addr": "0x08103de6",
+      "call": "seq_record"
+    },
+    "pageb.record.08103e94": {
+      "addr": "0x08103e94",
+      "call": "seq_record"
+    },
+    "pageb.record.08104056": {
+      "addr": "0x08104056",
+      "call": "seq_record"
+    },
+    "pageb.clear_slot.0810374c": {
+      "addr": "0x0810374c",
+      "call": "seq_clear_slot"
+    },
+    "pageb.clear_slot.08103262": {
+      "addr": "0x08103262",
+      "call": "seq_clear_slot"
+    },
+    "pageb.play.08103742": {
+      "addr": "0x08103742",
+      "call": "voice_play"
+    },
+    "pageb.play.081039e8": {
+      "addr": "0x081039e8",
+      "call": "voice_play"
+    },
+    "pageb.play.08105838": {
+      "addr": "0x08105838",
+      "call": "voice_play"
+    },
+    "pageb.trig_active.08103cf6": {
+      "addr": "0x08103cf6",
+      "call": "trig_active"
+    },
+    "pageb.ui_update.08100eee": {
+      "addr": "0x08100eee",
+      "call": "ui_update"
+    },
+    "pageb.ui_update.08100f3c": {
+      "addr": "0x08100f3c",
+      "call": "ui_update"
+    },
+    "keys.handler_lit": {
+      "addr": "0x08103b84",
+      "word": "0x08103581",
+      "_note": "key event handler (FUN_08103580) registered at init -> pk_el_key_event"
+    },
+    "page0.render_word": {
+      "addr": "0x0812bf68",
+      "word": "0x08105505",
+      "_note": ".data image: UI page 0 (main page) render pointer (page struct 0x10000834 + 4)"
+    },
+    "midi_page.event_word": {
+      "addr": "0x0812c040",
+      "word": "0x0810688d",
+      "_note": ".data image: UI page 12 (MIDI channels) event"
+    },
+    "midi_page.render_word": {
+      "addr": "0x0812c044",
+      "word": "0x081067b9",
+      "_note": ".data image: UI page 12 render"
+    },
+    "kits.load.0810264a": {
+      "addr": "0x0810264a",
+      "call": "kit_load"
+    },
+    "kits.load.08102742": {
+      "addr": "0x08102742",
+      "call": "kit_load"
+    },
+    "kits.load.08105ca2": {
+      "addr": "0x08105ca2",
+      "call": "kit_load"
+    },
+    "kits.load.08105ce2": {
+      "addr": "0x08105ce2",
+      "call": "kit_load"
+    },
+    "kits.load.08102592": {
+      "addr": "0x08102592",
+      "call": "kit_load",
+      "branch": true,
+      "_note": "pattern-switch callback (kit-link): tail call b.w kit_load"
+    },
+    "kits.save.08105c84": {
+      "addr": "0x08105c84",
+      "call": "kit_save"
+    },
+    "kits.save.08105cd4": {
+      "addr": "0x08105cd4",
+      "call": "kit_save"
+    },
+    "midi_in.dispatch_lit": {
+      "addr": "0x08103b90",
+      "word": "0x0810443d",
+      "_note": "MIDI message dispatcher registered at init"
+    },
+    "midi_in.dispatch_data": {
+      "addr": "0x0812c7d0",
+      "word": "0x0810443d",
+      "_note": ".data image: second registration of the dispatcher"
+    },
+    "midi_in.note_on_word": {
+      "addr": "0x0812be8c",
+      "word": "0x0810310d",
+      "_note": ".data image: MIDI callbacks (0x10000758) note on"
+    },
+    "midi_in.note_off_word": {
+      "addr": "0x0812be90",
+      "word": "0x081030d9",
+      "_note": ".data image: MIDI callbacks note off"
+    },
+    "keys.call_after_store_values": {
+      "addr": "0x081037b6",
+      "call": "after_store_values",
+      "_note": "key handler: after copying every voice's knob values (FUN_0810ca1c x 4): lanes too"
+    },
+    "pageb.cc_out.08103ef4": {
+      "addr": "0x08103ef4",
+      "call": "midi_out_bytes"
+    },
+    "pageb.cc_out.08103f92": {
+      "addr": "0x08103f92",
+      "call": "midi_out_bytes"
+    },
+    "pageb.cc_out.0810403e": {
+      "addr": "0x0810403e",
+      "call": "midi_out_bytes"
+    },
+    "pageb.cc_out.081036de": {
+      "addr": "0x081036de",
+      "call": "midi_out_bytes"
+    },
+    "pageb.mod_values.0810697c": {
+      "addr": "0x0810697c",
+      "call": "mod_values",
+      "_note": "MOD page render: per-voice values (11 x u16)"
+    },
+    "pageb.roll_hold.08106616": {
+      "addr": "0x08106616",
+      "call": "roll_hold"
+    },
+    "pageb.roll_hold.081066c0": {
+      "addr": "0x081066c0",
+      "call": "roll_hold"
+    },
+    "pageb.roll_hold.081066d4": {
+      "addr": "0x081066d4",
+      "call": "roll_hold"
+    },
+    "pageb.roll_rate_set.081066cc": {
+      "addr": "0x081066cc",
+      "call": "roll_rate_set"
+    },
+    "pageb.roll_rate_get.08106632": {
+      "addr": "0x08106632",
+      "call": "roll_rate_get"
+    }
+  }
+}

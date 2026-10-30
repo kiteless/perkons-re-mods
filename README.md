@@ -25,10 +25,11 @@ on your computer.
 
 | mod | what it does | how to use it |
 |---|---|---|
-| **voice-map** | any of the four voices can run any of the four voice engines (or ZIBENS), chosen per bank | [voice-map/README.md](voice-map/README.md) |
-| **ZIBENS** | a new synth voice: scale-locked resonant saw, PWM square, wavefolded sine (needs voice-map) | [zibens/README.md](zibens/README.md) |
+| **voice-map** | any of the four voices can run any of the four voice engines (or Zibens), chosen per bank | [voice-map/README.md](voice-map/README.md) |
+| **Zibens** | a new synth voice: scale-locked resonant saw, PWM square, wavefolded sine (needs voice-map) | [zibens/README.md](zibens/README.md) |
 | **FX reverb** | a reverb in place of the BBD delay, switched in the config menu | [fx-reverb/README.md](fx-reverb/README.md) |
 | **FX freeze** | the FX section's 2-way switch as freeze: loops the delay, or holds the reverb | [fx-freeze/README.md](fx-freeze/README.md) |
+| **8 tracks** | four more sequencer tracks, 5-8, on a second page (SHIFT + PATTERN), sending MIDI only | [eight-lanes/README.md](eight-lanes/README.md) |
 
 All of them are for Pērkons firmware **1.3.0**, and any combination can be built together.
 

@@ -6,7 +6,7 @@ import os
 from perkons.patch import PatchError
 
 TARGET = 'v1.3.0'
-SUMMARY = 'ZIBENS synth voice for voice-map ("zibens" in voices.json): scale-stepped saw/square/sine'
+SUMMARY = 'Zibens synth voice for voice-map ("zibens" in voices.json): scale-stepped saw/square/sine'
 RISK = 'medium'
 
 MOD = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

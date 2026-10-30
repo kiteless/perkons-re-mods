@@ -1,4 +1,4 @@
-/* ZIBENS: a scale-stepped synth voice with an MS-style resonant filter (M7).
+/* Zibens: a scale-stepped synth voice with an MS-style resonant filter (M7).
  *
  * An extra voice-map engine ("zibens" in voices.json): voice-map builds one in an output's
  * arena with pk_zb_build(). The object is cVoice-compatible: the fields the firmware
@@ -372,7 +372,7 @@ static const struct {
     cVoice_vtbl vtbl;
 } zb_vtable = {&zb_typeinfo, {trigger, init, update, render}};
 
-/* voice-map: build a ZIBENS instance in `obj` (an output's arena) for output `out` */
+/* voice-map: build a Zibens instance in `obj` (an output's arena) for output `out` */
 void pk_zb_build(uint8_t *obj, unsigned out)
 {
     for (unsigned i = 0; i < sizeof(zb_t); i++)

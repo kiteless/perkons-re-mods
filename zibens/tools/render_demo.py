@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render ZIBENS demo phrases through the emulated M7 (real message loop and audio
+"""Render Zibens demo phrases through the emulated M7 (real message loop and audio
 callback) to WAV files for listening.
 
   cd ../perkons && .venv/bin/python ../perkons-re-mods/zibens/tools/render_demo.py [out_dir]
@@ -41,7 +41,7 @@ PHRASES = [
 
 def render_phrase(img, sym, scale, wave, steps, decay, p1, r0, r1, notes, steps_total=20):
     e = verify.boot(img, sym)
-    e.send(3, 4, bytes([4, 1, 2, 3]))          # ZIBENS on output 1
+    e.send(3, 4, bytes([4, 1, 2, 3]))          # Zibens on output 1
     e.pump()
     out = []
     n = max(len(steps) * 2, len(notes or []))
