@@ -130,7 +130,8 @@ class TestFxReverb(unittest.TestCase):
         v = seqs[1]
         self.assertGreater(max(v) - min(v), 50000, 'full sweep')
         rises = sum(1 for a, b in zip(v, v[1:]) if b > a)
-        self.assertTrue(0.2 < rises / len(v) < 0.8, 'goes up and down')
+        falls = sum(1 for a, b in zip(v, v[1:]) if b < a)   # the LFO steps every 4th block
+        self.assertTrue(0.2 < rises / (rises + falls) < 0.8, 'goes up and down')
 
     def test_setting_loads_from_mods_json(self):
         from perkons.emu import M4Emu

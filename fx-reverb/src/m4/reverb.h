@@ -1,8 +1,9 @@
-/* Mono reverb (port of the Mutable Instruments Rings/Elements reverb, MIT). See reverb.c. */
+/* Mono reverb (port of the Mutable Instruments Rings/Elements reverb, MIT), run at 24 kHz.
+ * See reverb.c. */
 #pragma once
 #include <stdint.h>
 
-#define RV_SIZE 32768            /* 16-bit samples: 64 KB, must be a power of two */
+#define RV_SIZE 16384            /* 16-bit samples: 32 KB, must be a power of two */
 
 typedef struct {
     int16_t *buf;

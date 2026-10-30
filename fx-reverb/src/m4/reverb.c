@@ -16,15 +16,17 @@
  * figure-eight loop of 2 x (modulated delay read, one-pole damping, 2 allpasses, delay).
  * Changes from the original: mono in and out (the two tank taps are averaged), a "size"
  * scale on the two long delay reads (room / hall), modulation depth and rate as
- * parameters, a 2-pole input high-pass, and float LFOs instead of stmlib's.
+ * parameters, a 2-pole input high-pass, and float LFOs instead of stmlib's. It runs at
+ * 24 kHz (the caller decimates and interpolates): every line, read offset and modulation
+ * amplitude is half of Rings', so the times in seconds are the same in half the memory.
  */
 #include "reverb.h"
 
-/* delay line lengths (samples) and their bases in the shared ring, as in Rings */
+/* delay line lengths (samples at 24 kHz: Rings' halved) and their bases in the shared ring */
 enum {
-    L_AP1 = 150, L_AP2 = 214, L_AP3 = 319, L_AP4 = 527,
-    L_DAP1A = 2182, L_DAP1B = 2690, L_DEL1 = 4501,
-    L_DAP2A = 2525, L_DAP2B = 2197, L_DEL2 = 6312,
+    L_AP1 = 75, L_AP2 = 107, L_AP3 = 160, L_AP4 = 264,
+    L_DAP1A = 1091, L_DAP1B = 1345, L_DEL1 = 2250,
+    L_DAP2A = 1262, L_DAP2B = 1098, L_DEL2 = 3156,
 };
 enum {
     B_AP1 = 0,
@@ -88,11 +90,11 @@ static inline float lfo_shape(float ph)
 void rv_process(rv_t *r, const rv_params_t *p, const float *in, float *out, int n)
 {
     const float kap = p->diffusion, klp = p->lp, krt = p->time, gain = p->input_gain;
-    const float amp1 = 40.0f * p->mod_depth, amp2 = 50.0f * p->mod_depth;
-    /* base read offsets as Rings (4460 / 6261), but never so far that offset + modulation
+    const float amp1 = 20.0f * p->mod_depth, amp2 = 25.0f * p->mod_depth;
+    /* base read offsets as Rings (4460 / 6261, halved), but never so far that offset + modulation
      * reads past the end of the line into the next one (Rings' own amplitudes fit with
      * one sample to spare; deeper modulation needs the base pulled in) */
-    float off1 = 4460.0f * p->size, off2 = 6261.0f * p->size;
+    float off1 = 2230.0f * p->size, off2 = 3130.5f * p->size;
     if (off1 > (float)L_DEL1 - 2.0f - amp1)
         off1 = (float)L_DEL1 - 2.0f - amp1;
     if (off2 > (float)L_DEL2 - 2.0f - amp2)

@@ -6,6 +6,10 @@
  * the effective values the stock fx_update computes (after kit recall and pot catch), so
  * kit FX saving, pot catch and MIDI behave exactly as for the delay.
  *
+ * The reverb's tank runs at 24 kHz (half the line memory: the shared FX buffer is 32 KB):
+ * the pre-delay runs at 48 kHz, then a halfband filter decimates into the tank and
+ * interpolates out of it.
+ *
  * The LFO LED follows the reverb's modulation LFO while the reverb runs.
  *
  * Freeze is a separate mod (fx-freeze); the reverb follows pk_fx_freeze_engaged() and
@@ -19,6 +23,15 @@
 #define CLEAR_CHUNK     2048        /* int16 cleared per block during a switch-over */
 #define PREDELAY_LEN    8192        /* int16 samples in the BBD's 16 KB float line */
 #define PREDELAY        ((int16_t *)FW_BBD_LINE)
+#define TANK_RATE       24000.0f
+
+/* 31-tap halfband (Blackman-windowed sinc): the centre tap is 0.5 and every other tap
+ * is 0, so only these, the taps at even positions 0..30, are needed (the end ones are 0) */
+static const float HB[16] = {
+    0.0f, 0.000410319065f, -0.00223026483f, 0.00710079127f, -0.0179168642f, 0.0401070457f,
+    -0.0901060863f, 0.312630422f, 0.312630422f, -0.0901060863f, 0.0401070457f,
+    -0.0179168642f, 0.00710079127f, -0.00223026483f, 0.000410319065f, 0.0f,
+};
 
 _Static_assert(RV_SIZE == PK_FX_BUF_LEN, "reverb lines are the shared FX buffer");
 
@@ -30,6 +43,10 @@ PK_AXI static int32_t clear_pos;    /* >= 0 while clearing buffers for a switch-
 static rv_t rv;
 static int32_t pd_w;
 static float pd_delay;              /* current pre-delay, samples (slewed); < 0: snap */
+/* rate change histories, each stored twice so a window of the newest samples is contiguous */
+static float dec_h[64];             /* 48 kHz in, newest first from dec_h[dec_i] */
+static float int_h[32];             /* 24 kHz tank out, newest first from int_h[int_i] */
+static int32_t dec_i, int_i;
 
 static inline int16_t sat16(float x)
 {
@@ -66,11 +83,11 @@ static void reverb_params(rv_params_t *p, float *pd_target)
     p->time = room ? 0.30f + 0.55f * fb : 0.35f + 0.63f * fb;   /* full right: very long */
     p->size = room ? 0.6f : 1.0f;
     p->diffusion = 0.40f + 0.35f * rate;                        /* LFO RATE knob */
-    p->lp = 0.7f;                                               /* fixed damping (Rings) */
-    p->hp = 0.0156f;                                            /* ~120 Hz, 2 poles */
+    p->lp = 0.91f;                                              /* fixed damping (Rings' 0.7 at 48 kHz) */
+    p->hp = 0.031f;                                             /* ~120 Hz, 2 poles */
     p->mod_depth = 2.0f * depth;                                /* MOD DEPTH knob */
-    p->lfo_freq[0] = (0.5f + depth) * 0.5f / 48000.0f;
-    p->lfo_freq[1] = (0.5f + depth) * 0.3f / 48000.0f;
+    p->lfo_freq[0] = (0.5f + depth) * 0.5f / TANK_RATE;
+    p->lfo_freq[1] = (0.5f + depth) * 0.3f / TANK_RATE;
 
     if (pk_fx_freeze_engaged()) {                               /* as Elements */
         p->input_gain = 0.0f;
@@ -87,9 +104,43 @@ static void reverb_params(rv_params_t *p, float *pd_target)
     *pd_target = clampf(seconds * 48000.0f, 0.0f, (float)(PREDELAY_LEN - 2));
 }
 
+/* 48 kHz -> 24 kHz: one output per input pair */
+static void decimate(const float *x, float *x2)
+{
+    for (int f = 0; f < NF; f++) {
+        dec_i = (dec_i - 1) & 31;
+        dec_h[dec_i] = dec_h[dec_i + 32] = x[f];
+        if (f & 1) {
+            const float *h = dec_h + dec_i;
+            float acc = 0.5f * h[15];
+            for (int j = 0; j < 16; j++)
+                acc += HB[j] * h[2 * j];
+            x2[f >> 1] = acc;
+        }
+    }
+}
+
+/* 24 kHz -> 48 kHz: zero-stuffed and filtered, as two phases */
+static void interpolate(const float *y2, float *y)
+{
+    for (int f = 0; f < NF; f++) {
+        if (f & 1) {
+            y[f] = int_h[int_i + 7];
+        } else {
+            int_i = (int_i - 1) & 15;
+            int_h[int_i] = int_h[int_i + 16] = y2[f >> 1];
+            const float *h = int_h + int_i;
+            float acc = 0.0f;
+            for (int j = 0; j < 16; j++)
+                acc += HB[j] * h[j];
+            y[f] = 2.0f * acc;
+        }
+    }
+}
+
 static void reverb_block(const int16_t *in, int16_t *out)
 {
-    float x[NF], y[NF], pd_target;
+    float x[NF], y[NF], x2[NF / 2], y2[NF / 2], pd_target;
     rv_params_t p;
     reverb_params(&p, &pd_target);
     if (pd_delay < 0.0f)                        /* engine just started: no glide from 0 */
@@ -111,7 +162,9 @@ static void reverb_block(const int16_t *in, int16_t *out)
         if (++pd_w >= PREDELAY_LEN)
             pd_w = 0;
     }
-    rv_process(&rv, &p, x, y, NF);
+    decimate(x, x2);
+    rv_process(&rv, &p, x2, y2, NF / 2);
+    interpolate(y2, y);
     for (int f = 0; f < NF; f++)
         out[2 * f] = sat16(y[f] * 32768.0f);
 }
@@ -153,6 +206,10 @@ void pk_fx_engine(const int16_t *in, int16_t *out)
             pd_w = 0;
             rv.write_ptr = 0;               /* lines already zeroed above: reset state only */
             rv.lp1 = rv.lp2 = rv.hp1 = rv.hp2 = 0.0f;
+            for (int i = 0; i < 64; i++)
+                dec_h[i] = 0.0f;
+            for (int i = 0; i < 32; i++)
+                int_h[i] = 0.0f;
             fw_fx_bbd_clear_state();        /* delay: no tail from before the reverb */
             pk_fx_reset();
         }
