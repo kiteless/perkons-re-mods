@@ -1,7 +1,7 @@
 """Shared builders for the voice-map patches (not a patch itself)."""
 import os
 from perkons import cbuild
-from vm_model import PK_RAM_BASE, gen_slot_layout_header
+from vm_model import PK_ARENA_BASE, PK_ARENA_SIZE, PK_RAM_BASE, gen_slot_layout_header
 
 MOD = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC_M7 = os.path.join(MOD, 'src', 'm7')
@@ -74,6 +74,7 @@ def _build_m7(p, initial_map):
                     'cFourthSlot: noise-crush render -> per-output static')
     p.replace_word('m7', 'sbrk.limit_literal', PK_RAM_BASE + int(sym.raw['heap']['min_stack'], 16),
                    '_sbrk: cap heap below patch RAM')
+    p.ram_use('voice', 'voice_map', PK_ARENA_BASE + 4 * PK_ARENA_SIZE - PK_RAM_BASE, PK_RAM_BASE)
     p.cave_symbols = getattr(p, 'cave_symbols', {})
     p.cave_symbols['m7'] = syms
 
