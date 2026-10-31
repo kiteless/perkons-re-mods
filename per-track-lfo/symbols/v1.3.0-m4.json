@@ -1,0 +1,80 @@
+{
+  "_comment": "per-track-lfo: this mod's hook sites (the firmware facts they name are in the framework's symbols/v1.3.0-m4.json); loaded with them by perkons.mods",
+  "sites": {
+    "ptlfo.update.0810117c": {
+      "addr": "0x0810117c",
+      "call": "lfo_update",
+      "_note": "stream-1 sender: the modulation LFO, once per block"
+    },
+    "ptlfo.sync_tick.08101176": {
+      "addr": "0x08101176",
+      "call": "lfo_sync_tick",
+      "_note": "stream-1 sender: tempo -> synced LFO rate, once per beat"
+    },
+    "ptlfo.voice.0810119e": {
+      "addr": "0x0810119e",
+      "call": "voice_state",
+      "_note": "stream-1 sender, top of the per-voice loop; s17 holds the LFO output for the loop body"
+    },
+    "ptlfo.rate.081014ce": {
+      "addr": "0x081014ce",
+      "call": "lfo_set_rate",
+      "_note": "LFO knob poll: RATE (pot 0x21)"
+    },
+    "ptlfo.wave.081014d8": {
+      "addr": "0x081014d8",
+      "call": "lfo_set_wave",
+      "_note": "LFO knob poll: WAVE (pot 0x22)"
+    },
+    "ptlfo.level.081014e2": {
+      "addr": "0x081014e2",
+      "call": "lfo_set_level",
+      "_note": "LFO knob poll: MOD LVL (pot 0x23)"
+    },
+    "ptlfo.sync_key.08103848": {
+      "addr": "0x08103848",
+      "call": "lfo_sync_toggle",
+      "_note": "key handler: SYNC"
+    },
+    "ptlfo.reset.081037e6": {
+      "addr": "0x081037e6",
+      "call": "lfo_reset",
+      "_note": "key handler: transport restart"
+    },
+    "ptlfo.reset.08103816": {
+      "addr": "0x08103816",
+      "call": "lfo_reset",
+      "_note": "key handler: transport restart"
+    },
+    "ptlfo.reset.081039d6": {
+      "addr": "0x081039d6",
+      "call": "lfo_reset",
+      "_note": "key handler: transport restart"
+    },
+    "ptlfo.reset.08102538": {
+      "addr": "0x08102538",
+      "call": "lfo_reset",
+      "_note": "kit load with SYNC on"
+    },
+    "ptlfo.led.08103bf0": {
+      "addr": "0x08103bf0",
+      "call": "lfo_out",
+      "_note": "UI update: modulation LFO LED (0x4b)"
+    },
+    "ptlfo.sync_led.08103c9c": {
+      "addr": "0x08103c9c",
+      "call": "lfo_sync_get",
+      "_note": "UI update: SYNC LED (0x47)"
+    },
+    "ptlfo.sync_led.0810564a": {
+      "addr": "0x0810564a",
+      "call": "lfo_sync_get",
+      "_note": "main page render: SYNC LED (0x47)"
+    },
+    "ptlfo.trig_led.08103c6a": {
+      "addr": "0x08103c6a",
+      "call": "set_led",
+      "_note": "ui_update: the trigger LEDs (0x4f - voice), full for a hit or a mute, else off"
+    }
+  }
+}

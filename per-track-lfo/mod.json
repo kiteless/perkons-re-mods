@@ -1,0 +1,13 @@
+{
+  "options": [
+    {
+      "id": "per-track-lfo",
+      "title": "PER TRACK LFO",
+      "summary": "LFO GROUPS. HOLD TRIGGER KEYS AND TURN RATE, WAVE OR MOD LVL TO GIVE THOSE VOICES THEIR OWN LFO; RESET + RATE PUTS THEM ALL BACK ON ONE.",
+      "patches": [
+        "per_track_lfo"
+      ],
+      "code": "lf"
+    }
+  ]
+}
