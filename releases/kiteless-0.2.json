@@ -1,0 +1,17 @@
+{
+  "name": "kiteless",
+  "version": "0.2",
+  "base": "v1.3.0",
+  "base_image": "perkons_v1.3.0-0-force.img",
+  "tag": "kiteless0.2",
+  "banner": "+ kiteless 0.2 (voice-map, voice-slinks, fx-reverb, fx-freeze, eight-lanes, per-track-lfo)",
+  "patches": ["voice_map:bank", "voice_slinks", "fx_reverb", "fx_freeze", "eight_lanes", "per_track_lfo"],
+  "summary": "Any engine on any voice plus the slinks synth voice, a reverb and a freeze for the FX section, four MIDI tracks on a second page, and LFO groups.",
+  "notes": [
+    "voice-map / voice-slinks: voices.json chooses each voice's engine per bank (\"slinks\" for the new synth voice); see voice-map/README.md.",
+    "fx-reverb (config row 3 step 15) and fx-freeze (row 3 step 16) are off until switched on in the config menu.",
+    "eight-lanes: SHIFT + PATTERN flips to tracks 5-8 (MIDI only); their data goes in BANKS/NN/PP.PAX and KITS/PP.KIX beside the stock files. Cards from earlier builds still load their PP.PA2 / PP.KI2.",
+    "per-track-lfo: hold trigger keys and turn the LFO knobs to give those voices their own LFO; RESET + RATE puts them back on one.",
+    "Without voices.json, config changes or held keys the unit behaves like official 1.3.0, apart from eight-lanes' second page being available."
+  ]
+}

@@ -20,8 +20,8 @@ PATCHES=...`, `make ui`.
 | `eight-lanes` (8 TRACKS) | M4 (M4 host); takes almost all of STORE (to reduce after 0.2) | `"lane5-midi-channel"`.., `"lane5-trig-note"`.. in `system/mods.json`; lanes in the host's `PP.PAX` / `KITS/PP.KIX` (record `EL8P` / `EL8K`; older `.PA2` / `.KI2` still read) |
 | `per-track-lfo` (PER TRACK LFO) | M4 (M4 host) | none (trigger key + LFO knobs) |
 
-Next release in mind: `kiteless 0.2` (voice-map + fx-reverb + fx-freeze + voice-slinks) in
-`releases/`.
+Releases in `releases/`: `kiteless 0.1` (voice-map), `kiteless 0.2` (voice-map, voice-slinks,
+fx-reverb, fx-freeze, eight-lanes, per-track-lfo).
 
 ## Conventions
 
