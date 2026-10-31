@@ -1,0 +1,13 @@
+{
+  "options": [
+    {
+      "id": "pattern-bpm",
+      "title": "PER PATTERN BPM",
+      "summary": "EACH PATTERN KEEPS THE TEMPO IT WAS SAVED AT AND PLAYS AT IT. SWITCHED ON IN THE CONFIG MENU, ROW 3 STEP 14.",
+      "patches": [
+        "pattern_bpm"
+      ],
+      "code": "pb"
+    }
+  ]
+}

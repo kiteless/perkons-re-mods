@@ -19,6 +19,7 @@ PATCHES=...`, `make ui`.
 | `voice-slinks` | M7, a voice-map engine (requires voice-map) | `"slinks"` in `voices.json` |
 | `eight-lanes` (8 TRACKS) | M4 (M4 host); takes almost all of STORE (to reduce after 0.2) | `"lane5-midi-channel"`.., `"lane5-trig-note"`.. in `system/mods.json`; lanes in the host's `PP.PAX` / `KITS/PP.KIX` (record `EL8P` / `EL8K`; older `.PA2` / `.KI2` still read) |
 | `per-track-lfo` (PER TRACK LFO) | M4 (M4 host) | none (trigger key + LFO knobs) |
+| `pattern-bpm` (PER PATTERN BPM) | M4 (M4 host): toggle, sidecar record, `pattern_switched` event | row 3 step 14 (key 45), `"pattern-bpm"`; tempos in `PP.PAX` (record `BPM1`) |
 
 Releases in `releases/`: `kiteless 0.1` (voice-map), `kiteless 0.2` (voice-map, voice-slinks,
 fx-reverb, fx-freeze, eight-lanes, per-track-lfo).
@@ -28,8 +29,8 @@ fx-reverb, fx-freeze, eight-lanes, per-track-lfo).
 * One folder per mod: `mod.json`, `patches/`, `src/<core>/`, `lib/`, `tests/`, and a
   user-facing `README.md`. Design notes and RE findings go in the private
   `../perkons-re-docs/mods/<mod>/`, never in this public repo.
-* `mod.json` codes taken: `vm`, `rv`, `fz`, `sl`, `et`, `lf`. Config keys taken: 46, 47.
-  Sidecar record tags taken: `EL8P`, `EL8K`. M7 config messages: `voice-map`. Extra
+* `mod.json` codes taken: `vm`, `rv`, `fz`, `sl`, `et`, `lf`, `pb`. Config keys taken: 45, 46, 47.
+  Sidecar record tags taken: `EL8P`, `EL8K`, `BPM1`. M7 config messages: `voice-map`. Extra
   voice-map engines register by name (`p.shared['voice_map']['engines']['slinks']`) and
   are numbered by voice-map (from 5, in name order); voices.json selects them by name.
 * M4 mods register with the framework's M4 host, M7 mods with the M7 host. Hooks chain:

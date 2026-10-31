@@ -31,6 +31,7 @@ on your computer.
 | **fx-freeze** | the FX section's 2-way switch as freeze: loops the delay, or holds the reverb | [fx-freeze/README.md](fx-freeze/README.md) |
 | **eight-lanes** | four more sequencer tracks, 5-8, on a second page (SHIFT + PATTERN), sending MIDI only | [eight-lanes/README.md](eight-lanes/README.md) |
 | **per-track-lfo** | LFO groups: hold trigger keys and turn the LFO knobs to give those voices their own LFO | [per-track-lfo/README.md](per-track-lfo/README.md) |
+| **pattern-bpm** | each pattern keeps the tempo it was saved at, and plays at it (config row 3 step 14) | [pattern-bpm/README.md](pattern-bpm/README.md) |
 
 All of them are for Pērkons firmware **1.3.0**, and any combination can be built together.
 
