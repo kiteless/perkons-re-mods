@@ -8,6 +8,7 @@ from seq_harness import PERKONS, SeqHarness  # noqa: F401  (sets sys.path)
 os.environ.setdefault('PERKONS_MODS', os.path.join(PERKONS, '..', 'perkons-re-mods'))
 from fixtures import build_patched, require_image  # noqa: E402
 from perkons.fwimage import Image  # noqa: E402
+from perkons.rig import stub_hardware  # noqa: E402
 
 _cache = {}
 
@@ -20,13 +21,9 @@ def lanes_image(extra=()):
     return _cache[key]
 
 
-SD_PRESENT = 0x0810854c       # FUN_0810854c: SD card mounted
-DMA_COPY = 0x0810b8c4         # FUN_0810b8c4(src, dst, len, wait): MDMA (AXI) / DMA block copy
-
-
 def lanes_harness(extra=(), sd=None, img=None):
-    """The eight-lanes image (or `img`, e.g. stock) booted in the harness, with an SD card
-    that is present and supports deleting."""
+    """The eight-lanes image (or `img`, e.g. stock) booted in the harness, with the
+    framework rig's hardware stubs (SD card present, DMA copies, silent DAC)."""
     if img is None:
         img, s = lanes_image(extra)
         hook = s['pk4_boot']
@@ -34,19 +31,7 @@ def lanes_harness(extra=(), sd=None, img=None):
         s, hook = {}, None
     h = SeqHarness(img, sd=sd, boot_hook=hook)
     h.cave = s
-    e = h.e
-    e.stub(SD_PRESENT, lambda emu, *a: 1)
-
-    def dma_copy(emu, src, dst, n, *_):       # no DMA in the emulator: copy directly
-        e.uc.mem_write(dst, bytes(e.uc.mem_read(src, n)))
-        return 1
-    e.stub(DMA_COPY, dma_copy)
-
-    def unlink(emu, path_ptr, *_):
-        e.sd.pop(e._norm(e.cstr(path_ptr)), None)
-        e.sd_written.pop(e._norm(e.cstr(path_ptr)), None)
-        return 0
-    e.stub(h.sym.fn['f_unlink'] if 'f_unlink' in h.sym.fn else 0x0811e52c, unlink)
+    stub_hardware(h.e, h.sym)
     return h
 
 

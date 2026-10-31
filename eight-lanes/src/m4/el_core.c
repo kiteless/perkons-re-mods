@@ -13,9 +13,6 @@
 
 
 /* device_config (stock MIDI settings) */
-#define DC_SEQ_OUT      0x19
-#define DC_MULTI        0x1d
-#define DC_CH_SINGLE    0x22
 
 #define GATE_TIE        0xffffffffu
 #define STEP_TIE        3
@@ -40,8 +37,6 @@ typedef struct {
 
 PK_AXI static lane_t lanes[NLANES];
 
-#define fw_seq_tick     FW_CALL(SYM_seq_tick, void (*)(int))
-#define fw_midi_out     FW_CALL(SYM_midi_out_bytes, void (*)(int port, uint32_t packed))
 #define DC(off)         FW_U8(SYM_device_config + (off))
 
 void el_copy(void *dst, const void *src, uint32_t n)
@@ -70,10 +65,10 @@ void pk_el_init(void)
     uint32_t pm = el_irq_off();
 
     /* states: the 4 set up by the firmware, lanes as copies of track 4 */
-    el_copy(pk_el_states, PTR(U32(s + SEQ_STATES)), 4 * STATE);
+    el_copy(pk_el_states, PTR(U32(s + FW_SEQ_STATES)), 4 * STATE);
     for (int t = FIRST_LANE; t < TRACKS; t++) {
         el_copy(el_state(t), el_state(3), STATE);
-        el_state(t)[VS_INDEX] = (uint8_t)t;
+        el_state(t)[FW_VS_INDEX] = (uint8_t)t;
     }
     /* note records: stock initial values, twice */
     el_copy(pk_el_notes, PTR(SYM_seq_notes), 4 * NOTE_REC);
@@ -83,9 +78,9 @@ void pk_el_init(void)
     for (int l = 0; l < NLANES; l++)
         lanes[l].step_len = 288;
 
-    U32(s + SEQ_STATES) = ADDR(pk_el_states);
+    U32(s + FW_SEQ_STATES) = ADDR(pk_el_states);
     el_patterns_init();             /* the current pattern gets an 8-track working block */
-    s[SEQ_COUNT] = TRACKS;
+    s[FW_SEQ_COUNT] = TRACKS;
     el_irq_restore(pm);
 }
 
@@ -108,8 +103,8 @@ static void note_off(lane_t *ln)
 static int tune_shift(lane_t *ln, const uint8_t *vs)
 {
     static const uint8_t octaves[3] = {2, 1, 4};      /* switch value 0 middle, 1 up, 2 down */
-    uint32_t range = octaves[U16(vs + VS_VALUE + 2 * SLOT_RANGE) % 3] * 12u;
-    int32_t pos = (int32_t)U16(vs + VS_VALUE + 2 * SLOT_TUNE) - 32768;
+    uint32_t range = octaves[U16(vs + FW_VS_VALUE + 2 * SLOT_RANGE) % 3] * 12u;
+    int32_t pos = (int32_t)U16(vs + FW_VS_VALUE + 2 * FW_SLOT_TUNE) - 32768;
     /* position in semitones x 4 (quarter-semitone resolution for the hysteresis) */
     int32_t q = pos * (int32_t)range * 4 / 32768;
     int32_t cur = ln->shift * 4;
@@ -121,13 +116,13 @@ static int tune_shift(lane_t *ln, const uint8_t *vs)
 static int octave(const uint8_t *vs)
 {
     static const int8_t oct[3] = {0, 1, -1};          /* 0 middle, 1 up, 2 down */
-    return oct[U16(vs + VS_VALUE + 2 * SLOT_OCTAVE) % 3];
+    return oct[U16(vs + FW_VS_VALUE + 2 * SLOT_OCTAVE) % 3];
 }
 
 /* gate length in sub-ticks from DECAY: left = blip, centre = one step, right = tie */
 static uint32_t gate(const lane_t *ln, const uint8_t *vs)
 {
-    uint32_t d = U16(vs + VS_VALUE + 2 * SLOT_DECAY);
+    uint32_t d = U16(vs + FW_VS_VALUE + 2 * FW_SLOT_DECAY);
     uint32_t step = ln->step_len ? ln->step_len : 288;
     if (d >= 63570)                                    /* top 3%: tie */
         return GATE_TIE;
@@ -150,16 +145,16 @@ static void lane_fire(int l, lane_t *ln, const uint8_t *vs)
     const uint8_t *rec = pk_el_notes + (FIRST_LANE + l) * NOTE_REC;
     uint8_t vel = (uint8_t)((rec[3] * rec[5] + rec[5]) >> 7);
     uint8_t note, ch;
-    if (DC(DC_MULTI)) {
+    if (DC(FW_DC_MULTI)) {
         int n = rec[4] + tune_shift(ln, vs) + 12 * octave(vs);
         note = (uint8_t)(n < 0 ? 0 : n > 127 ? 127 : n);
         ch = el_lane_channel(l);
     } else {
         note = el_lane_trig_note(l);
-        ch = DC(DC_CH_SINGLE) & 15;
+        ch = DC(FW_DC_CH_SINGLE) & 15;
     }
     note_off(ln);
-    if (!DC(DC_SEQ_OUT) || !vel)
+    if (!DC(FW_DC_SEQ_OUT) || !vel)
         return;
     midi((uint8_t)(0x90 | ch), note, vel);
     ln->sounding = 1;
@@ -181,17 +176,17 @@ void el_lane_live_note(int l, int on, int step_note, int vel)
         midi((uint8_t)(0x80 | live_ch[l]), live_note[l], 0);
         live_on[l] = 0;
     }
-    if (!on || !DC(DC_SEQ_OUT))
+    if (!on || !DC(FW_DC_SEQ_OUT))
         return;
     const uint8_t *vs = el_state(FIRST_LANE + l);
     uint8_t note, ch;
-    if (DC(DC_MULTI)) {
+    if (DC(FW_DC_MULTI)) {
         int n = step_note + tune_shift(&lanes[l], vs) + 12 * octave(vs);
         note = (uint8_t)(n < 0 ? 0 : n > 127 ? 127 : n);
         ch = el_lane_channel(l);
     } else {
         note = el_lane_trig_note(l);
-        ch = DC(DC_CH_SINGLE) & 15;
+        ch = DC(FW_DC_CH_SINGLE) & 15;
     }
     midi((uint8_t)(0x90 | ch), note, (uint8_t)(vel ? vel : 0x7f));
     live_on[l] = 1;
@@ -255,7 +250,7 @@ static void lane_roll(int l)
 static void el_lanes_tick(void)
 {
     const uint8_t *s = el_seq();
-    int playing = s[SEQ_PLAY] == 1 && s[SEQ_COUNT] == TRACKS;
+    int playing = s[FW_SEQ_PLAY] == 1 && s[FW_SEQ_COUNT] == TRACKS;
     for (int l = 0; l < NLANES; l++) {
         lane_t *ln = &lanes[l];
         uint8_t *vs = el_state(FIRST_LANE + l);
@@ -263,11 +258,11 @@ static void el_lanes_tick(void)
         if (!playing) {
             note_off(ln);
             ln->last_step_valid = 0;
-            vs[VS_FIRED] = 0;
+            vs[FW_VS_FIRED] = 0;
             continue;
         }
         /* measure the lane's step length (speed, shuffle, tempo) */
-        uint16_t step = U16(vs + VS_STEP);
+        uint16_t step = U16(vs + FW_VS_STEP);
         ln->since_step++;
         if (!ln->last_step_valid || step != ln->last_step) {
             if (ln->last_step_valid && ln->since_step > 1)
@@ -276,11 +271,11 @@ static void el_lanes_tick(void)
             ln->last_step = step;
             ln->last_step_valid = 1;
         }
-        const uint8_t *blk = PTR(U32(vs + VS_BLOCK));
-        if (vs[VS_FIRED]) {
-            vs[VS_FIRED] = 0;
+        const uint8_t *blk = PTR(U32(vs + FW_VS_BLOCK));
+        if (vs[FW_VS_FIRED]) {
+            vs[FW_VS_FIRED] = 0;
             /* a tie step continues the sounding note instead of retriggering */
-            if (!vs[VS_MUTE] && !(blk[8 * step] == STEP_TIE && ln->sounding))
+            if (!vs[FW_VS_MUTE] && !(blk[8 * step] == STEP_TIE && ln->sounding))
                 lane_fire(l, ln, vs);
         } else if (ln->sounding) {
             /* tie steps (state 3) hold the note through them, as stock skips the note-off:
@@ -296,8 +291,10 @@ static void el_lanes_tick(void)
 }
 
 /* replaces the sequencer tick callback (clock_state+0x3c) */
+void PK_NEXT(pk_el_tick)(int);
+
 void pk_el_tick(int beat)
 {
-    fw_seq_tick(beat);
+    PK_NEXT(pk_el_tick)(beat);
     el_lanes_tick();
 }

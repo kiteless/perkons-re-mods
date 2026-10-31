@@ -8,13 +8,8 @@
  * files as before. */
 #include "el.h"
 
-#define KEY_SHIFT       0x47
-#define EV_DOWN         0x11
 #define LED_ON          0x80
 
-#define fw_key_held     FW_CALL(SYM_key_held, int (*)(int key))
-#define fw_page_event   FW_CALL(SYM_midi_page_event, int (*)(const uint8_t *evt))
-#define fw_page_render  FW_CALL(SYM_midi_page_render, void (*)(void))
 
 PK_AXI uint8_t pk_el_ch5, pk_el_ch6, pk_el_ch7, pk_el_ch8;
 PK_AXI uint8_t pk_el_tn5, pk_el_tn6, pk_el_tn7, pk_el_tn8;
@@ -42,23 +37,27 @@ uint8_t el_lane_trig_note(int l)
 
 static int lanes_shown(void)
 {
-    return FW_U8(SYM_midi_page_multi) && fw_key_held(KEY_SHIFT);
+    return FW_U8(SYM_midi_page_multi) && fw_key_held(FW_KEY_SHIFT);
 }
+
+int PK_NEXT(pk_el_midi_page_event)(const uint8_t *evt);
 
 int pk_el_midi_page_event(const uint8_t *evt)
 {
-    if (evt[1] == EV_DOWN && evt[0] < 0x40 && lanes_shown()) {
+    if (evt[1] == FW_EV_DOWN && evt[0] < 0x40 && lanes_shown()) {
         *channel[evt[0] >> 4] = evt[0] & 15;
         FW_U8(SYM_midi_page_dirty) = 1;
         return 1;
     }
-    return fw_page_event(evt);
+    return PK_NEXT(pk_el_midi_page_event)(evt);
 }
+
+void PK_NEXT(pk_el_midi_page_render)(void);
 
 void pk_el_midi_page_render(void)
 {
     if (!lanes_shown()) {
-        fw_page_render();
+        PK_NEXT(pk_el_midi_page_render)();
         return;
     }
     for (int row = 0; row < NLANES; row++)

@@ -111,5 +111,72 @@ class TestPageB(unittest.TestCase):
         self.assertEqual((self.e.r8(self.h.voice_state(6) + 0x108), self.e.r8(self.h.voice_state(2) + 0x108)), (1, 0))
 
 
+POTS = 0x08103d58              # FUN_08103d58: pot handler (main loop)
+POT_MOVED, POT_VALUE, POT_DELTA = 0x08109818, 0x081097e4, 0x081097d0
+
+
+class TestShiftKnob(unittest.TestCase):
+    """SHIFT + knob moves a control on every row by the knob's turn and springs back on
+    release, as stock does for voices 1-4; on page B the engine controls do it on the lanes."""
+
+    def setUp(self):
+        self.h = lanes_harness()
+        self.ui = UI(self.h)
+        self.e = self.h.e
+        self.moved = {}
+        self.e.stub(POT_MOVED, lambda emu, p, *_: 1 if (p & 0xff) in self.moved else 0)
+        self.e.stub(POT_VALUE, lambda emu, p, *_: self.moved.get(p & 0xff, (0, 0))[0])
+        self.e.stub(POT_DELTA, lambda emu, p, *_: self.moved.get(p & 0xff, (0, 0))[1])
+        for t in range(8):
+            for slot in range(11):
+                self.e.uc.mem_write(self.h.voice_state(t) + 0x6a + 2 * slot, struct.pack('<H', 0x1000 * (t + 1)))
+
+    def values(self, slot):
+        return [self.h.r16(self.h.voice_state(t) + 0x6a + 2 * slot) for t in range(8)]
+
+    def turn(self, pot, value, delta):
+        self.moved = {pot: (value, delta)}
+        self.e.call(POTS, max_insns=50_000_000)
+        self.moved = {}
+
+    def release_shift(self):
+        self.ui.event(SHIFT, False)
+        self.e.call(POTS, max_insns=50_000_000)
+
+    def test_page_a_is_stock(self):
+        before = self.values(0)
+        self.ui.event(SHIFT, True)
+        self.turn(0, 0x2222, 0x100)                                  # column 1 TUNE
+        self.assertEqual(self.values(0), [0x2222, 0x2100, 0x3100, 0x4100] + before[4:])
+        self.release_shift()
+        self.assertEqual(self.values(0), before)
+
+    def test_page_b_engine_controls_move_the_lanes(self):
+        before = self.values(4)
+        to_page_b(self.ui)
+        self.ui.event(SHIFT, True)
+        self.turn(8 + 4, 0x2222, 0x100)                              # column 2 DECAY
+        self.assertEqual(self.values(4), before[:4] + [0x5100, 0x2222, 0x7100, 0x8100])
+        self.release_shift()
+        self.assertEqual(self.values(4), before)
+
+    def test_page_b_analog_knobs_stay_with_the_voices(self):
+        before = self.values(2)
+        to_page_b(self.ui)
+        self.ui.event(SHIFT, True)
+        self.turn(2, 0x2222, 0x100)                                  # column 1 slot 2 (CUTOFF)
+        self.assertEqual(self.values(2), [0x2222, 0x2100, 0x3100, 0x4100] + before[4:])
+        self.release_shift()
+        self.assertEqual(self.values(2), before)
+
+    def test_rec_during_shift_keeps_the_lanes_moved(self):
+        to_page_b(self.ui)
+        self.ui.event(SHIFT, True)
+        self.turn(0, 0x2222, 0x100)
+        self.ui.press(0x46)                                          # REC while SHIFT held
+        self.release_shift()
+        self.assertEqual(self.values(0)[4:], [0x2222, 0x6100, 0x7100, 0x8100])
+
+
 if __name__ == '__main__':
     unittest.main()

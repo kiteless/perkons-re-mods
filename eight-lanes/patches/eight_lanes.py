@@ -1,7 +1,6 @@
 """eight-lanes: four MIDI-only sequencer lanes (5-8) beside tracks 1-4.
-See ../docs/design.md. Built by the framework's M4 host; addresses beyond the framework's
-symbols come from ../symbols/<version>-m4.json."""
-import json
+Built by the framework's M4 host; hook sites are in
+../symbols/<version>-m4.json (merged into the framework's symbols)."""
 import os
 
 from perkons import m4host
@@ -16,25 +15,11 @@ SRC = os.path.join(MOD, 'src', 'm4')
 NOTES_SITES = ('notes.lit_prepare', 'notes.lit_send_triggers', 'notes.lit_fn_08102134')
 
 
-def merge_symbols(sym, version='v1.3.0'):
-    """Add this mod's addresses to the shared M4 symbols (idempotent)."""
-    with open(os.path.join(MOD, 'symbols', f'{version}-m4.json')) as f:
-        extra = json.load(f)
-    for sec, table in (('functions', sym.fn), ('globals', sym.g), ('constants', sym.const)):
-        for k, v in extra.get(sec, {}).items():
-            if not k.startswith('_'):
-                sym.raw.setdefault(sec, {})[k] = v
-                table[k] = int(v, 0)
-    for k, v in extra.get('sites', {}).items():
-        if not k.startswith('_'):
-            sym.raw.setdefault('sites', {})[k] = v
-            sym.sites[k] = v
-
-
 def apply(p, arg=None):
-    merge_symbols(p.symbols['m4'])
     h = m4host.host(p)
     h.add([os.path.join(SRC, f) for f in ('el_core.c', 'el_patterns.c', 'el_page.c', 'el_config.c', 'el_kits.c', 'el_midi_in.c')], [SRC], init='pk_el_init')
+    h.store('pattern', 'EL8P', 'pk_el_pat_save', 'pk_el_pat_load')       # lanes 5-8: PP.PAX
+    h.store('kit', 'EL8K', 'pk_el_kit_rec_save', 'pk_el_kit_rec_load')    # lanes' kit values: KITS/PP.KIX
     h.replace_word('clock.tick_fnptr', 'pk_el_tick', 'sequencer tick -> lanes 5-8 after the stock tick')
     for site, sym, why in (
             ('main.call_switch_done', 'pk_el_switch_done', 'pattern switched: lanes follow the revert'),
@@ -56,7 +41,9 @@ def apply(p, arg=None):
              'roll_hold': ('pk_el_roll_hold', 'note repeat: lanes on page B'),
              'roll_rate_set': ('pk_el_roll_rate_set', 'note repeat rate: lanes on page B'),
              'roll_rate_get': ('pk_el_roll_rate_get', 'note repeat rate LEDs: lanes on page B'),
-             'cc_out': ('pk_el_cc_out', 'knob/switch CC out: on the lane channel on page B')}
+             'cc_out': ('pk_el_cc_out', 'knob/switch CC out: on the lane channel on page B'),
+             'shift_vs': ('pk_el_shift_vs', 'SHIFT + knob: engine controls move the lanes on page B'),
+             'restore_vs': ('pk_el_restore_vs', 'SHIFT released: lanes spring back too')}
     for site in sorted(k for k in p.symbols['m4'].sites if k.startswith('pageb.')):
         sym, why = hooks[site.split('.')[1]]
         h.redirect_call(site, sym, why)
@@ -82,7 +69,7 @@ def apply(p, arg=None):
         s = p.cave_symbols['m4host']
         for site in NOTES_SITES:
             p.replace_word('m4', site, s['pk_el_notes'], f'{site}: note records for 8 tracks')
-        q = p.symbols['m4'].site('seq_queue.entry')
+        q = p.site('m4', 'seq_queue.entry')
         p.write('m4', q['addr'], thumb_bl(q['addr'], s['pk_el_queue'], link=False), q['bytes'],
                 'queue next pattern -> pk_el_queue (expands the lanes)')
     p.on_finish(data_pointers)

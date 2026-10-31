@@ -1,5 +1,6 @@
 """Eight-lanes: lanes follow the stock pattern lifecycle (save, revert on
-switch, clear, bank load) and are stored in BANKS/NN/PP.PA2 (the .PAT format)."""
+switch, clear, bank load) and are stored in the host's pattern sidecar (BANKS/NN/PP.PAX,
+record EL8P); older cards' BANKS/NN/PP.PA2 (the .PAT format) still load."""
 import os
 import sys
 import unittest
@@ -37,6 +38,40 @@ def parse(b):
     return out
 
 
+NLANES, LANE_REC = 4, 364
+
+
+def records(b):
+    """The host sidecar format: "PKX1", then {tag[4], u32 length, data}."""
+    assert b[:4] == b'PKX1'
+    out, i = [], 4
+    while i < len(b):
+        n = int.from_bytes(b[i + 4:i + 8], 'little')
+        out.append((b[i:i + 4], b[i + 8:i + 8 + n]))
+        i += 8 + n
+    return out
+
+
+def pat_blocks(b):
+    return [v[3:] for f, v in parse(b) if f == 3]
+
+
+def pat_file(blocks, repeats=16):
+    """A .PAT-format file (length-prefixed: {1: 1, 2: repeats, 3: {1: block} x 4})."""
+    def vi(v):
+        out = bytearray()
+        while True:
+            out.append((v & 0x7f) | (0x80 if v > 0x7f else 0))
+            v >>= 7
+            if not v:
+                return bytes(out)
+    body = b'\x08\x01\x10' + vi(repeats)
+    for blk in blocks:
+        inner = b'\x0a' + vi(len(blk)) + bytes(blk)
+        body += b'\x1a' + vi(len(inner)) + inner
+    return vi(len(body)) + body
+
+
 def step_on(h, track, step):
     return h.e.r8(h.block(track) + 8 * step)
 
@@ -44,7 +79,7 @@ def step_on(h, track, step):
 class TestLanesPatterns(unittest.TestCase):
     def save(self, h, p=0, bank=0, src=0):
         """The pattern page's save: the playing pattern (src) into slot p of the bank."""
-        h.e.call(h.cave.get('pk_el_save', 0x08102158), header(src), bank, p, max_insns=200_000_000)
+        h.e.call(h.cave.get('pk4_store_pat_save', 0x08102158), header(src), bank, p, max_insns=200_000_000)
 
     def test_save_and_revert_like_stock(self):
         """Saved edits survive leaving the pattern, unsaved ones don't: tracks and lanes."""
@@ -68,7 +103,7 @@ class TestLanesPatterns(unittest.TestCase):
         self.assertEqual(results['stock'], ((1, 1), (0, 0)))
         self.assertEqual(results['lanes'], results['stock'])
 
-    def test_pa2_is_the_pat_format_and_pat_is_stock(self):
+    def test_lanes_in_pax_and_pat_is_stock(self):
         files = {}
         for name, kw in (('stock', dict(img=Image.load(require_image('v1.3.0')))), ('lanes', {})):
             h = lanes_harness(**kw)
@@ -78,38 +113,52 @@ class TestLanesPatterns(unittest.TestCase):
             self.save(h, p=0, bank=0)
             files[name] = dict(h.e.sd_written)
         self.assertEqual(files['lanes']['banks/00/00.pat'], files['stock']['banks/00/00.pat'])
-        pa2 = parse(files['lanes']['banks/00/00.pa2'])
-        self.assertEqual([f for f, _ in pa2], [1, 2, 3, 3, 3, 3])
-        self.assertEqual(pa2[0][1], 1)
-        tracks = [v for f, v in pa2 if f == 3]
-        blocks = []
-        for t in tracks:
-            key, i = varint(t, 0)
-            n, i = varint(t, i)
-            self.assertEqual((key, n, len(t) - i), (0x0a, 0x22c, 0x22c))
-            blocks.append(t[i:])
-        self.assertEqual((blocks[2][2 * 8], blocks[2][2 * 8 + 6], blocks[2][2 * 8 + 7]), (1, 55, 77))
-        self.assertEqual(blocks[0][16], 0)                       # lane 5 untouched
+        tag, rec = records(files['lanes']['banks/00/00.pax'])[0]
+        self.assertEqual((tag, len(rec)), (b'EL8P', NLANES * LANE_REC))
+        lane = rec[2 * LANE_REC:3 * LANE_REC]                    # lane 7
+        self.assertEqual((lane[2 * 8], lane[2 * 8 + 6], lane[2 * 8 + 7]), (1, 55, 77))
+        self.assertEqual(rec[16], 0)                             # lane 5 untouched
 
-    def test_bank_load_reads_pa2(self):
+    def test_empty_lanes_no_record(self):
+        h = lanes_harness()
+        h.set_step(0, 1, 40, 99)                                 # a voice step only
+        self.save(h)
+        self.assertNotIn('banks/00/00.pax', h.e.sd_written)
+
+    def test_bank_load_reads_pax(self):
         h = lanes_harness()
         h.set_step(7, 4, 50, 88)                                 # lane 8, pattern 0
         self.save(h, p=5, bank=2)                                # save to pattern 5 of bank 2
         card = dict(h.e.sd_written)
         h2 = lanes_harness(sd=card)
-        h2.e.call(h2.cave['pk_el_bank_prepare'], 2, max_insns=500_000_000)
+        h2.e.call(h2.cave['pk4_store_bank_load'], 2, max_insns=900_000_000)
         queue_and_switch(h2, 5)
         self.assertEqual((step_on(h2, 7, 4), h2.e.r8(h2.block(7) + 4 * 8 + 6)), (1, 50))
         queue_and_switch(h2, 6)
         self.assertEqual(step_on(h2, 7, 4), 0)                   # other patterns: empty lanes
 
+    def test_legacy_pa2_loads_and_saving_replaces_it(self):
+        h = lanes_harness()
+        self.save(h, p=0, bank=2)                                # a stock PP.PAT as template
+        pat = h.e.sd_written['banks/02/00.pat']
+        blocks = [bytearray(b) for b in pat_blocks(pat)]
+        blocks[3][4 * 8:4 * 8 + 8] = bytes([1, 0x0a, 0, 0, 0, 0, 50, 88])   # lane 8 step 5
+        card = {'BANKS/02/05.PAT': pat, 'BANKS/02/05.PA2': pat_file(blocks)}
+        h2 = lanes_harness(sd=card)
+        h2.e.call(h2.cave['pk4_store_bank_load'], 2, max_insns=900_000_000)
+        queue_and_switch(h2, 5)
+        self.assertEqual((step_on(h2, 7, 4), h2.e.r8(h2.block(7) + 4 * 8 + 6)), (1, 50))
+        self.save(h2, src=5, p=5, bank=2)
+        self.assertIn('banks/02/05.pax', h2.e.sd_written)
+        self.assertNotIn('banks/02/05.pa2', h2.e.sd)
+
     def test_clear_removes_lanes_and_file(self):
         h = lanes_harness()
         h.set_step(4, 2, 50, 88)
         self.save(h)
-        self.assertIn('banks/00/00.pa2', h.e.sd_written)
-        h.e.call(h.cave['pk_el_clear'], 0, 0, max_insns=200_000_000)
-        self.assertNotIn('banks/00/00.pa2', h.e.sd_written)
+        self.assertIn('banks/00/00.pax', h.e.sd_written)
+        h.e.call(h.cave['pk4_store_pat_clear'], 0, 0, max_insns=200_000_000)
+        self.assertNotIn('banks/00/00.pax', h.e.sd_written)
         self.assertEqual(step_on(h, 4, 2), 0)
         queue_and_switch(h, 1)
         queue_and_switch(h, 0)

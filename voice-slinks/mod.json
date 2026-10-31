@@ -1,0 +1,16 @@
+{
+  "options": [
+    {
+      "id": "voice-slinks",
+      "title": "Slinks",
+      "summary": "A NEW SYNTH VOICE. SCALE-LOCKED RESONANT SAW, PWM SQUARE, AND WAVEFOLDED SINE. TOP SWITCH SELECTS SCALE, BOTTOM WAVEFORM.",
+      "patches": [
+        "voice_slinks"
+      ],
+      "code": "sl",
+      "requires": [
+        "voice-map"
+      ]
+    }
+  ]
+}

@@ -97,8 +97,11 @@ Your stock files are never changed. Tracks 5–8 go in files beside them on the 
 
 | file | holds |
 |---|---|
-| `BANKS/NN/PP.PA2` | tracks 5–8 of pattern PP (beside the stock `PP.PAT`) |
-| `BANKS/NN/KITS/PP.KI2` | tracks 5–8's values in kit PP (beside the stock `PP.KIT`) |
+| `BANKS/NN/PP.PAX` | tracks 5–8 of pattern PP (beside the stock `PP.PAT`) |
+| `BANKS/NN/KITS/PP.KIX` | tracks 5–8's values in kit PP (beside the stock `PP.KIT`) |
+
+Cards from earlier versions kept tracks 5–8 in `PP.PA2` / `KITS/PP.KI2`: those still load,
+and the next save of that pattern or kit writes the new file and removes the old one.
 | `system/mods.json` | tracks 5–8's channels and trigger notes |
 
 Official firmware ignores these files, so going back to it leaves your patterns and kits
@@ -108,7 +111,6 @@ as they were; flash this mod again and tracks 5–8 are back.
 
 * Note repeat on tracks 5–8 starts when you press the key; on voices 1–4 it lines up with
   the clock.
-* It uses almost all of the free AXI SRAM (STORE in the Mod Matrix's memory meters), for
+* It uses almost all of the STORE memory (in the Mod Matrix's memory meters), for
   four more tracks in all 64 patterns.
 
-Design and firmware notes: [docs/design.md](docs/design.md).
