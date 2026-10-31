@@ -171,13 +171,15 @@ static void reverb_block(const int16_t *in, int16_t *out)
 
 /* replaces fx_lfo's LED write: in reverb mode the LFO LED shows the reverb's tank
  * modulation (MOD DEPTH sets its rate) instead of the idle delay LFO */
+void PK_NEXT(pk_fx_lfo_led)(uint32_t pwm);
+
 void pk_fx_lfo_led(uint32_t pwm)
 {
-    if (pk_host_booted() && pk_reverb_active) {
+    if (pk_reverb_active) {
         float x = 2.0f * rv.lfo_val[0] - 1.0f;              /* -1..1, as the stock LFO */
         pwm = (uint32_t)(0x7fff - (int32_t)(x * 32767.0f)) & 0xffff;
     }
-    fw_fx_lfo_led_pwm(pwm);
+    PK_NEXT(pk_fx_lfo_led)(pwm);
 }
 
 void pk_fx_engine(const int16_t *in, int16_t *out)

@@ -32,11 +32,13 @@ static inline int16_t sat16(float x)
 }
 
 /* replaces fx_update's SHORT/LONG read: in freeze mode the delay always sees SHORT */
+int PK_NEXT(pk_fx_read_switch)(void *port, uint16_t pin);
+
 int pk_fx_read_switch(void *port, uint16_t pin)
 {
-    int level = fw_gpio_read(port, pin);
+    int level = PK_NEXT(pk_fx_read_switch)(port, pin);
     switch_level = (uint8_t)level;
-    if (pk_host_booted() && pk_cfg_freeze)
+    if (pk_cfg_freeze)
         return LEVEL_SHORT;
     return level;
 }

@@ -1,5 +1,5 @@
 """fx-reverb: a reverb in place of the BBD delay, switchable on config row 3 step 15.
-M4 only, built by the framework's M4 host. Works with fx-freeze. See docs/design.md."""
+M4 only, built by the framework's M4 host. Works with fx-freeze."""
 import os
 
 from perkons import m4host
