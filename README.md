@@ -25,11 +25,12 @@ on your computer.
 
 | mod | what it does | how to use it |
 |---|---|---|
-| **voice-map** | any of the four voices can run any of the four voice engines (or Zibens), chosen per bank | [voice-map/README.md](voice-map/README.md) |
-| **Zibens** | a new synth voice: scale-locked resonant saw, PWM square, wavefolded sine (needs voice-map) | [zibens/README.md](zibens/README.md) |
-| **FX reverb** | a reverb in place of the BBD delay, switched in the config menu | [fx-reverb/README.md](fx-reverb/README.md) |
-| **FX freeze** | the FX section's 2-way switch as freeze: loops the delay, or holds the reverb | [fx-freeze/README.md](fx-freeze/README.md) |
-| **8 tracks** | four more sequencer tracks, 5-8, on a second page (SHIFT + PATTERN), sending MIDI only | [eight-lanes/README.md](eight-lanes/README.md) |
+| **voice-map** | any of the four voices can run any of the four voice engines (or voice-slinks), chosen per bank | [voice-map/README.md](voice-map/README.md) |
+| **voice-slinks** | a new synth voice: scale-locked resonant saw, PWM square, wavefolded sine (needs voice-map) | [voice-slinks/README.md](voice-slinks/README.md) |
+| **fx-reverb** | a reverb in place of the BBD delay, switched in the config menu | [fx-reverb/README.md](fx-reverb/README.md) |
+| **fx-freeze** | the FX section's 2-way switch as freeze: loops the delay, or holds the reverb | [fx-freeze/README.md](fx-freeze/README.md) |
+| **eight-lanes** | four more sequencer tracks, 5-8, on a second page (SHIFT + PATTERN), sending MIDI only | [eight-lanes/README.md](eight-lanes/README.md) |
+| **per-track-lfo** | LFO groups: hold trigger keys and turn the LFO knobs to give those voices their own LFO | [per-track-lfo/README.md](per-track-lfo/README.md) |
 
 All of them are for Pērkons firmware **1.3.0**, and any combination can be built together.
 
@@ -40,7 +41,7 @@ Clone this repo next to `perkons-re`; the framework finds it (or set `PERKONS_MO
 
 ```sh
 make test                                   # framework + mod tests
-make build PATCHES='voice_map:bank zibens'  # a firmware file in builds/
+make build PATCHES='voice_map:bank voice_slinks'  # a firmware file in builds/
 make ui                                     # the Mod Matrix
 ```
 
