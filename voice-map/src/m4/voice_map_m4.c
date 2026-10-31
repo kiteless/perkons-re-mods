@@ -1,20 +1,20 @@
 /* Voice map, M4 side: after a bank's samples load, read the voice map and send it to
  * the M7 (config stream, type PK_MSG_VOICE_MAP, 4 bytes = engine index per output).
  *
- * voices.json: {"voice1": "voice4", "voice2": "zibens", ...}: each output names the
+ * voices.json: {"voice1": "voice4", "voice2": "slinks", ...}: each output names the
  * engine it runs, "voice1"-"voice4" for the stock voices' engines, and the names other
- * mods register (e.g. "zibens"; generated into pk_engine_names.h). Missing keys,
+ * mods register (e.g. "slinks"; generated into pk_engine_names.h). Missing keys,
  * unknown names or an unreadable file mean "stock" for that output. Lookup:
  * BANKS/NN/voices.json if PK_PER_BANK and it exists, else voices.json in the root.
  *
- * Hook: the three `bl load_samples` calls (boot_init, switch_bank, boot_load_last_bank)
- * -> pk4_load_samples.
+ * Hook (M4 host): the three `bl load_samples` calls (boot_init, switch_bank,
+ * boot_load_last_bank) -> pk_vm_load_samples.
  */
 #include <stdint.h>
-#include "fw_m4.h"
+#include "pk_host.h"
 #include "pk_engine_names.h"    /* PK_ENGINE_NAMES: "", "voice1" .. "voice4", extras */
 
-#define PK_MSG_VOICE_MAP 4
+/* PK_MSG_VOICE_MAP: the voice-map config message type, from the M7 host (m7host.py) */
 
 #ifndef PK_PER_BANK
 #define PK_PER_BANK 0
@@ -47,9 +47,11 @@ static const char *voice_map_path(int bank, char *buf, unsigned size)
     return "voices.json";
 }
 
-void pk4_load_samples(int bank)
+void PK_NEXT(pk_vm_load_samples)(int bank);
+
+void pk_vm_load_samples(int bank)
 {
-    fw_load_samples(bank);
+    PK_NEXT(pk_vm_load_samples)(bank);
 
     char buf[32];
     const char *path = voice_map_path(bank, buf, sizeof buf);

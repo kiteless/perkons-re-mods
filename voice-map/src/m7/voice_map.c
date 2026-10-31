@@ -6,31 +6,23 @@
  * boot. The initial map is compiled in (PK_MAP, one nibble per output); the M4 can
  * replace it at any time with config message type PK_MSG_VOICE_MAP (4 bytes, one engine
  * per output). Engines 0-3 are the stock ones (copied from their templates); 4 and up
- * are engines other mods add (voices.json names such as "zibens"), built in place by the function the
+ * are engines other mods add (voices.json names such as "slinks"), built in place by the function the
  * generated pk_extra_build[] table names. Unknown engines mean stock for that output.
  *
- * Hooks (installed by patches/_voice_map_common.py):
- *   main: bl wire_voices                       -> pk_boot
- *   main: bl ipc_recv (stream 3, unknown type) -> pk_cfg_recv
+ * On the framework's M7 host (patches/_voice_map_common.py):
+ *   boot, after wire_voices                    -> pk_vm_boot (init)
+ *   config message "voice-map"                 -> pk_vm_on_map
  *   main: bl cSamplePlayer_load_a / _load_b    -> pk_sample_load_a / _b
  *   main: strb r3, [slots[3], #0x2c6d]         -> pk_p2cfg
  *   cFourthSlot render: sampler / noise-crush  -> pk_sampler_render / pk_crush_render
  */
 #include <stdint.h>
-#include "fw_m7.h"
+#include "pk7_host.h"
 #include "pk_ram.h"
 #include "slot_layout.h"
+#include "pk_extra_engines.h"   /* PK_N_EXTRA, pk_extra_build[]: other mods' engines */
 
-#define PK_MSG_VOICE_MAP 4
 #define PK_N_STOCK 4
-
-#ifndef PK_N_EXTRA
-#define PK_N_EXTRA 0
-#endif
-#if PK_N_EXTRA
-typedef void (*pk_extra_build_t)(uint8_t *obj, unsigned out);
-extern const pk_extra_build_t pk_extra_build[PK_N_EXTRA];   /* generated */
-#endif
 
 typedef struct {
     uint32_t magic;
@@ -109,10 +101,9 @@ static uint8_t *build_output(unsigned out, unsigned src)
     return obj;
 }
 
-/* Replaces main's call to wire_voices(); main calls slots[i]->init() right after. */
-void pk_boot(void)
+/* M7 host init: runs after wire_voices; main calls slots[i]->init() right after. */
+void pk_vm_boot(void)
 {
-    fw_wire_voices();
     PK->magic = PK_MAGIC;
     PK->samples_ready = 0;
     PK->p2cfg = *((const uint8_t *)pk_slots[FW_SAMPLE_VOICE].base + FW_P2CFG_OFF);
@@ -158,13 +149,11 @@ static void apply_map_msg(const uint8_t *map)
     PK->remaps++;
 }
 
-/* Replaces main's "receive and discard" for stream-3 messages it doesn't know. */
-int pk_cfg_recv(int stream, uint32_t *hdr, uint8_t *buf)
+/* The voice-map config message (M7 host): one engine per output. */
+void pk_vm_on_map(const uint8_t *buf, uint32_t len)
 {
-    int got = fw_ipc_recv(stream, hdr, buf);
-    if (got && (hdr[0] & 0xffu) == PK_MSG_VOICE_MAP && hdr[1] == 4)
+    if (len == 4)
         apply_map_msg(buf);
-    return got;
 }
 
 /* Sample messages: apply to every output running the sampler engine. The firmware
@@ -218,14 +207,17 @@ static int16_t render_with_static(int16_t (*render)(void *), void *engine, const
     return v;
 }
 
+int16_t PK_NEXT(pk_sampler_render)(void *sampler);
+int16_t PK_NEXT(pk_crush_render)(void *crush);
+
 int16_t pk_sampler_render(void *sampler)
 {
-    return render_with_static(fw_sampler_render, sampler, (uint8_t *)sampler - FW_SAMPLER_OFF,
+    return render_with_static(PK_NEXT(pk_sampler_render), sampler, (uint8_t *)sampler - FW_SAMPLER_OFF,
                               FW_SAMPLER_STATIC, PK->sampler_static);
 }
 
 int16_t pk_crush_render(void *crush)
 {
-    return render_with_static(fw_crush_render, crush, (uint8_t *)crush - FW_CRUSH_OFF,
+    return render_with_static(PK_NEXT(pk_crush_render), crush, (uint8_t *)crush - FW_CRUSH_OFF,
                               FW_CRUSH_STATIC, PK->crush_static);
 }

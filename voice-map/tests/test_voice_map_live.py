@@ -48,7 +48,7 @@ class TestVoiceMapLive(unittest.TestCase):
         e = M4Emu(img.segment('m4').data, self.sym4, img.segment('m7').data, sd=sd).boot()
         loaded = []
         e.stub(self.sym4.fn['load_samples'], lambda emu, b, *_: loaded.append(b))
-        e.call(syms['m4']['pk4_load_samples'], bank)
+        e.call(syms['m4host']['pk_vm_load_samples'], bank)
         self.assertEqual(loaded, [bank], 'original load_samples must run first, with the same bank')
         msgs = e.sent(3)
         self.assertEqual(len(msgs), 1)
@@ -61,7 +61,7 @@ class TestVoiceMapLive(unittest.TestCase):
             (None, [0, 1, 2, 3]),                                                         # no file: stock
             ({'voice1': 'voice4', 'voice2': 'voice4', 'voice3': 'voice3', 'voice4': 'voice4'}, [3, 3, 2, 3]),
             ({'voice2': 'voice1'}, [0, 0, 2, 3]),                                         # missing keys: stock
-            ({'voice1': 'Voice2', 'voice2': 'zibens', 'voice3': '', 'voice4': 'x'}, [0, 1, 2, 3]),  # unknown: stock
+            ({'voice1': 'Voice2', 'voice2': 'slinks', 'voice3': '', 'voice4': 'x'}, [0, 1, 2, 3]),  # unknown: stock
             ({'voice1': 4, 'voice2': '3'}, [0, 1, 2, 3]),                                 # numbers: stock
             ({'voice1': 'voice2', 'VOICE2': 'voice1', 'other': 'voice3'}, [1, 1, 2, 3]),  # keys case-sensitive
         ]
