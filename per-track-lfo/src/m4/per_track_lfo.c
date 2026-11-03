@@ -22,10 +22,6 @@
 #define CATCH           0.02f       /* pot catch: the knob this close to the value takes it */
 #define LED_DIM         0x10
 
-#define U8(p)           (*(volatile uint8_t *)(p))
-#define U32(p)          (*(volatile uint32_t *)(p))
-#define F32(p)          (*(volatile float *)(p))
-
 typedef void (*setter_t)(float value, uint8_t *lfo);
 #define fw_lfo_update   FW_CALL(SYM_lfo_update, float (*)(uint8_t *lfo))
 #define fw_lfo_sync_tick FW_CALL(SYM_lfo_sync_tick, void (*)(float tempo, uint8_t *lfo))
@@ -54,12 +50,6 @@ static uint8_t *main_lfo(void)
 static uint8_t *obj(int g)
 {
     return g == MAIN ? main_lfo() : lfo[g - 1];
-}
-
-static void copy(uint8_t *dst, const uint8_t *src, int n)
-{
-    for (int i = 0; i < n; i++)
-        dst[i] = src[i];
 }
 
 static void set(int i, float value, uint8_t *l)
@@ -95,8 +85,8 @@ static float knob_of(int g, int i)
 {
     if (g != MAIN)
         return knob[g - 1][i];
-    uint8_t *stored = (uint8_t *)U32(main_lfo() + FW_LFO_STORED);
-    return stored ? F32(stored + 4 * i) : 0.5f;
+    uint8_t *stored = (uint8_t *)FW_U32(main_lfo() + FW_LFO_STORED);
+    return stored ? FW_F32(stored + 4 * i) : 0.5f;
 }
 
 static void select(int g)
@@ -126,11 +116,11 @@ static int take(int keys)
             g = k;                          /* free once they leave */
     if (g != src) {
         uint8_t *dst = lfo[g - 1];
-        copy(dst, obj(src), FW_LFO_SIZE);
-        copy(wavetable[g - 1], (uint8_t *)U32(obj(src) + FW_LFO_WAVETABLE), FW_LFO_WAVETABLE_SIZE);
-        U32(dst + FW_LFO_WAVETABLE) = (uint32_t)(uintptr_t)wavetable[g - 1];
-        U32(dst + FW_LFO_STORED) = 0;
-        U8(dst + FW_LFO_CATCH) = 0;
+        pk_copy(dst, obj(src), FW_LFO_SIZE);
+        pk_copy(wavetable[g - 1], (uint8_t *)FW_U32(obj(src) + FW_LFO_WAVETABLE), FW_LFO_WAVETABLE_SIZE);
+        FW_U32(dst + FW_LFO_WAVETABLE) = (uint32_t)(uintptr_t)wavetable[g - 1];
+        FW_U32(dst + FW_LFO_STORED) = 0;
+        FW_U8(dst + FW_LFO_CATCH) = 0;
         for (int i = 0; i < 3; i++)
             knob[g - 1][i] = knob_of(src, i);
     }
@@ -145,13 +135,13 @@ static void merge(int settings)
 {
     uint8_t *m = main_lfo();
     if (settings && sel != MAIN) {
-        U8(m + FW_LFO_CATCH) = 0;
+        FW_U8(m + FW_LFO_CATCH) = 0;
         for (int i = 0; i < 3; i++)
             set(i, knob[sel - 1][i], m);
-        if (U8(m + FW_LFO_SYNC) != U8(lfo[sel - 1] + FW_LFO_SYNC))
+        if (FW_U8(m + FW_LFO_SYNC) != FW_U8(lfo[sel - 1] + FW_LFO_SYNC))
             fw_lfo_sync_toggle(m);
         set(0, knob[sel - 1][0], m);
-        U8(m + FW_LFO_CATCH) = 7;           /* the knobs take it again as stock pot catch does */
+        FW_U8(m + FW_LFO_CATCH) = 7;           /* the knobs take it again as stock pot catch does */
     }
     for (int v = 0; v < VOICES; v++)
         group[v] = MAIN;
@@ -185,7 +175,7 @@ static void knob_poll(int i, float value, uint8_t *main, setter_t next)
             knob[g - 1][i] = value;
             set(i, value, lfo[g - 1]);
         }
-        U8(main + FW_LFO_CATCH) |= 1 << i;   /* the main group keeps its value */
+        FW_U8(main + FW_LFO_CATCH) |= 1 << i;   /* the main group keeps its value */
         return;
     }
     if (sel == MAIN) {
@@ -206,7 +196,7 @@ static void knob_poll(int i, float value, uint8_t *main, setter_t next)
         knob[sel - 1][i] = value;
         set(i, value, lfo[sel - 1]);
     }
-    U8(main + FW_LFO_CATCH) |= 1 << i;
+    FW_U8(main + FW_LFO_CATCH) |= 1 << i;
 }
 
 void PK_NEXT(pk_lf_rate)(float value, uint8_t *lfo);
@@ -272,7 +262,7 @@ void pk_lf_sync_key(uint8_t *main)
         return;
     }
     uint8_t *l = lfo[sel - 1];
-    U8(l + FW_LFO_SYNC) ^= 1;
+    FW_U8(l + FW_LFO_SYNC) ^= 1;
     set(0, knob[sel - 1][0], l);            /* rate or sync multiplier from its RATE */
 }
 
@@ -327,7 +317,7 @@ void pk_lf_trig_led(int id, int level)
     int v = 0x4f - id;
     if (level == 0 && v >= 0 && v < VOICES && grouped() && group[v] != MAIN) {
         if (group[v] == sel) {
-            int x = (int)F32(lfo[sel - 1] + FW_LFO_OUT) + 0x7fff;     /* 0..0xfffe */
+            int x = (int)FW_F32(lfo[sel - 1] + FW_LFO_OUT) + 0x7fff;     /* 0..0xfffe */
             level = LED_DIM + (x >> 10);                              /* 0x10..0x4f */
         } else {
             level = LED_DIM;

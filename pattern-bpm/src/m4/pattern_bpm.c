@@ -9,16 +9,8 @@
 #include <stdint.h>
 #include "pk_host.h"
 
-#define NPATTERNS       64
-
 PK_AXI uint8_t pk_cfg_pattern_bpm;          /* system/mods.json "pattern-bpm" */
-PK_AXI static uint16_t bpm10[NPATTERNS];    /* each pattern's tempo x 10; 0 = none */
-
-static int pattern_of(uint32_t hdr)
-{
-    uint32_t off = hdr - (uint32_t)SYM_pat_headers;
-    return off < NPATTERNS * FW_HDR_SIZE && off % FW_HDR_SIZE == 0 ? (int)(off / FW_HDR_SIZE) : -1;
-}
+PK_AXI static uint16_t bpm10[FW_PATTERNS];    /* each pattern's tempo x 10; 0 = none */
 
 /* the host's pattern sidecar, record "BPM1": u16 tempo x 10 */
 uint32_t pk_pb_save(int bank, int idx, uint8_t *buf, uint32_t max)
@@ -44,7 +36,7 @@ void pk_pb_switched(void)
 {
     if (!pk_cfg_pattern_bpm || FW_U8(SYM_device_config + FW_DC_CLOCK_SRC) != 0)
         return;
-    int p = pattern_of(FW_U32(SYM_switch_record + FW_SWITCH_NEW));
+    int p = fw_pattern_of((const void *)(uintptr_t)FW_U32(SYM_switch_record + FW_SWITCH_NEW));
     if (p >= 0 && bpm10[p])
         fw_tempo_set(bpm10[p] / 10.0f);
 }
