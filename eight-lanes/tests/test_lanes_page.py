@@ -4,13 +4,12 @@ import struct
 import sys
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'harness'))
-from lanes_build import UI, lanes_harness  # noqa: E402
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'lib'))
+from el_rig import DEVICE, SYM, lanes_rig, stock_image  # noqa: E402,F401
 
 SHIFT, PATTERN, KIT, CLEAR = 0x47, 0x40, 0x41, 0x4a
 TRIG1 = 0x4b
 LED_PATTERN = 0x49
-DEVICE = 0x10000784
 
 
 def to_page_b(ui):
@@ -22,8 +21,8 @@ def to_page_b(ui):
 
 class TestPageB(unittest.TestCase):
     def setUp(self):
-        self.h = lanes_harness()
-        self.ui = UI(self.h)
+        self.h = lanes_rig()
+        self.ui = self.h
         self.e = self.h.e
 
     def test_page_a_at_power_on(self):
@@ -111,8 +110,8 @@ class TestPageB(unittest.TestCase):
         self.assertEqual((self.e.r8(self.h.voice_state(6) + 0x108), self.e.r8(self.h.voice_state(2) + 0x108)), (1, 0))
 
 
-POTS = 0x08103d58              # FUN_08103d58: pot handler (main loop)
-POT_MOVED, POT_VALUE, POT_DELTA = 0x08109818, 0x081097e4, 0x081097d0
+POTS = SYM.fn['knob_handler']   # the pot handler (main loop)
+POT_VALUE, POT_DELTA = SYM.fn['knob_raw'], SYM.fn['knob_delta']
 
 
 class TestShiftKnob(unittest.TestCase):
@@ -120,11 +119,10 @@ class TestShiftKnob(unittest.TestCase):
     release, as stock does for voices 1-4; on page B the engine controls do it on the lanes."""
 
     def setUp(self):
-        self.h = lanes_harness()
-        self.ui = UI(self.h)
+        self.h = lanes_rig()
+        self.ui = self.h
         self.e = self.h.e
         self.moved = {}
-        self.e.stub(POT_MOVED, lambda emu, p, *_: 1 if (p & 0xff) in self.moved else 0)
         self.e.stub(POT_VALUE, lambda emu, p, *_: self.moved.get(p & 0xff, (0, 0))[0])
         self.e.stub(POT_DELTA, lambda emu, p, *_: self.moved.get(p & 0xff, (0, 0))[1])
         for t in range(8):
@@ -136,8 +134,10 @@ class TestShiftKnob(unittest.TestCase):
 
     def turn(self, pot, value, delta):
         self.moved = {pot: (value, delta)}
+        self.h.moving = {pot}                       # the rig's pot_moved
         self.e.call(POTS, max_insns=50_000_000)
         self.moved = {}
+        self.h.moving = set()
 
     def release_shift(self):
         self.ui.event(SHIFT, False)

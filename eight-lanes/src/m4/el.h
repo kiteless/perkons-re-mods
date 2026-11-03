@@ -15,9 +15,6 @@
 
 /* sequencer object, pattern headers */
 
-#define U8(p)           (*(volatile uint8_t *)(p))
-#define U16(p)          (*(volatile uint16_t *)(p))
-#define U32(p)          (*(volatile uint32_t *)(p))
 #define PTR(v)          ((uint8_t *)(uintptr_t)(v))
 #define ADDR(p)         ((uint32_t)(uintptr_t)(p))
 
@@ -33,13 +30,9 @@ static inline uint8_t *el_state(int t)
     return pk_el_states + t * STATE;
 }
 
-void el_copy(void *dst, const void *src, uint32_t n);
-uint32_t el_irq_off(void);
-void el_irq_restore(uint32_t primask);
 
 /* el_patterns.c */
 void el_patterns_init(void);
-uint32_t el_get_varint(const uint8_t *b, uint32_t len, uint32_t *i);
 
 /* el_kits.c */
 void el_kits_clear(void);

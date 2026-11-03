@@ -23,11 +23,11 @@ def apply(p, arg=None):
     h.replace_word('clock.tick_fnptr', 'pk_el_tick', 'sequencer tick -> lanes 5-8 after the stock tick')
     for site, sym, why in (
             ('main.call_switch_done', 'pk_el_switch_done', 'pattern switched: lanes follow the revert'),
-            ('patpage.call_save_a', 'pk_el_save', 'save pattern: lanes too (.PA2)'),
-            ('patpage.call_save_b', 'pk_el_save', 'save pattern: lanes too (.PA2)'),
+            ('patpage.call_save_a', 'pk_el_save', 'save pattern: lanes into the store too'),
+            ('patpage.call_save_b', 'pk_el_save', 'save pattern: lanes into the store too'),
             ('patpage.call_clear', 'pk_el_clear', 'clear pattern: lanes too'),
-            ('switch_bank.call_bank_prepare', 'pk_el_bank_prepare', 'bank load: lanes from .PA2'),
-            ('boot_load_last_bank.call_bank_prepare', 'pk_el_bank_prepare', 'bank load: lanes from .PA2'),
+            ('switch_bank.call_bank_prepare', 'pk_el_bank_prepare', 'bank load: working blocks back first'),
+            ('boot_load_last_bank.call_bank_prepare', 'pk_el_bank_prepare', 'bank load: working blocks back first'),
             ('keys.call_after_store_values', 'pk_el_after_store_values', 'knob values stored: lanes too')):
         h.redirect_call(site, sym, why)
     # page B: every UI call site found by the RE (symbols overlay, pageb.<group>.<addr>)
@@ -52,7 +52,7 @@ def apply(p, arg=None):
         if p.symbols['m4'].site(site).get('branch'):
             h.redirect_branch(site, f'pk_el_kit_{kind}', 'kit-link load: lanes too')
         else:
-            h.redirect_call(site, f'pk_el_kit_{kind}', f'kit {kind}: lanes too (.KI2)')
+            h.redirect_call(site, f'pk_el_kit_{kind}', f'kit {kind}: lanes too')
     for n in range(5, 9):
         h.setting(f'lane{n}-midi-channel', f'pk_el_ch{n}')
         h.setting(f'lane{n}-trig-note', f'pk_el_tn{n}')

@@ -5,12 +5,11 @@ import struct
 import sys
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'harness'))
-from lanes_build import UI, lanes_harness  # noqa: E402
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'lib'))
+from el_rig import DEVICE, SYM, lanes_rig, stock_image  # noqa: E402,F401
 
-DEVICE = 0x10000784
 SHIFT = 0x47
-MIDI_VIEW_MULTI, MIDI_DIRTY = 0x1002c7e7, 0x1002c7e6
+MIDI_VIEW_MULTI, MIDI_DIRTY = SYM.g['midi_page_multi'], SYM.g['midi_page_dirty']
 
 
 def lane_note_ons(h, lane, step=2):
@@ -28,22 +27,22 @@ def lane_note_ons(h, lane, step=2):
 
 class TestLaneConfig(unittest.TestCase):
     def test_defaults_channels_5_to_8_and_trigger_notes_40_to_43(self):
-        h = lanes_harness()
+        h = lanes_rig()
         s = h.cave
         self.assertEqual([h.e.r8(s[f'pk_el_ch{n}']) for n in range(5, 9)], [4, 5, 6, 7])
         self.assertEqual([h.e.r8(s[f'pk_el_tn{n}']) for n in range(5, 9)], [40, 41, 42, 43])
 
     def test_settings_load_from_mods_json(self):
         mods = {'lane5-midi-channel': 9, 'lane7-trig-note': 50}
-        h = lanes_harness(sd={'system/mods.json': json.dumps(mods).encode()})
+        h = lanes_rig(sd={'system/mods.json': json.dumps(mods).encode()})
         h.e.w8(DEVICE + 0x1d, 1)
         self.assertEqual(lane_note_ons(h, 4), ['993c64'])            # lane 5 on channel 10
-        h = lanes_harness(sd={'system/mods.json': json.dumps(mods).encode()})
+        h = lanes_rig(sd={'system/mods.json': json.dumps(mods).encode()})
         self.assertEqual(lane_note_ons(h, 6), ['903264'])            # single: lane 7 note 50
 
     def test_midi_page_with_shift_sets_lane_channels_and_saves(self):
-        h = lanes_harness()
-        ui = UI(h)
+        h = lanes_rig()
+        ui = h
         h.e.w8(MIDI_VIEW_MULTI, 1)
         ui.held.add(SHIFT)
         ev = 0x2407ff00
@@ -59,8 +58,8 @@ class TestLaneConfig(unittest.TestCase):
         self.assertNotIn('lane7-midi-channel', h.e.sd_written['system/device.json'].decode())
 
     def test_midi_page_without_shift_is_stock(self):
-        h = lanes_harness()
-        UI(h)
+        h = lanes_rig()
+        h
         h.e.w8(MIDI_VIEW_MULTI, 1)
         ev = 0x2407ff00
         h.e.uc.mem_write(ev, bytes([0x20 + 12, 0x11]))

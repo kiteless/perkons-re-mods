@@ -24,11 +24,6 @@
       "insn": "ldr r3, [pc, #4]; ldr r3, [r3]",
       "_note": "FUN_0810dadc (queue next pattern: seq+0xc = header), first instruction -> b.w pk_el_queue"
     },
-    "main.call_switch_done": {
-      "addr": "0x08100f0c",
-      "call": "pat_switch_done",
-      "_note": "main loop: revert the pattern left / snapshot the new one"
-    },
     "pageb.ui_vs.08104fcc": {
       "addr": "0x08104fcc",
       "call": "voice_state"
@@ -176,11 +171,6 @@
     "pageb.ui_update.08100f3c": {
       "addr": "0x08100f3c",
       "call": "ui_update"
-    },
-    "keys.handler_lit": {
-      "addr": "0x08103b84",
-      "word": "key_event|1",
-      "_note": "key event handler (FUN_08103580) registered at init -> pk_el_key_event"
     },
     "page0.render_word": {
       "addr": "0x0812bf68",

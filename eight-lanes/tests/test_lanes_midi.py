@@ -1,19 +1,18 @@
-"""Eight-lanes: lanes 5-8 as MIDI, built image in the harness."""
+"""Eight-lanes: lanes 5-8 as MIDI, the built image on the rig."""
 import os
 import struct
 import sys
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'harness'))
-from lanes_build import lanes_harness  # noqa: E402
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'lib'))
+from el_rig import DEVICE, SYM, lanes_rig, stock_image  # noqa: E402,F401
 
-DEVICE = 0x10000784
 TUNE, DECAY, RANGE, OCT = 0, 4, 8, 9          # stock slot numbers
 
 
 class TestLanesMidi(unittest.TestCase):
     def harness(self, multi=True, tune=32768, decay=0, rng=1, octave=0, lanes=range(4, 8)):
-        h = lanes_harness()
+        h = lanes_rig()
         h.e.w8(DEVICE + 0x1d, 1 if multi else 0)
         for t in lanes:
             vs = h.voice_state(t)
@@ -26,7 +25,7 @@ class TestLanesMidi(unittest.TestCase):
         """[(step, sub-tick, bytes)] of everything sent while running."""
         ev = []
         h.e.stub(h.sym.fn['midi_out_bytes'], lambda emu, port, packed, *_: ev.append(
-            (h.r16(0x1000068c + 0x20), h.r16(0x1000068c + 0x22), h.decode_midi((port, packed)).hex())))
+            (h.r16(h.clock + 0x20), h.r16(h.clock + 0x22), h.decode_midi((port, packed)).hex())))
         h.play()
         h.run(steps)
         return ev

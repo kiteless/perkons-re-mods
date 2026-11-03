@@ -4,18 +4,17 @@ import struct
 import sys
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'harness'))
-from lanes_build import UI, lanes_harness  # noqa: E402
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'lib'))
+from el_rig import DEVICE, SYM, lanes_rig, stock_image  # noqa: E402,F401
 
-DEVICE = 0x10000784
-REC = 0x100284ad
+REC = SYM.g['rec_flags'] + 1
 MSG = 0x2407fe00
-HELD_FIRST, HELD_NEXT = 0x0810b794, 0x0810b7a4
+HELD_FIRST, HELD_NEXT = SYM.fn['held_first'], SYM.fn['held_next']
 
 
 class TestLaneMidiIn(unittest.TestCase):
     def harness(self, multi=True):
-        h = lanes_harness()
+        h = lanes_rig()
         h.e.w8(DEVICE + 0x1d, 1 if multi else 0)
         h.e.w8(DEVICE + 0x1b, 1)                                 # midi-velocity on
         for lane in range(4, 8):
@@ -25,13 +24,13 @@ class TestLaneMidiIn(unittest.TestCase):
         self.out = []
         h.e.stub(h.sym.fn['midi_out_bytes'], lambda emu, port, packed, *_: self.out.append(
             h.decode_midi((port, packed)).hex()))
-        # the MIDI module's init (FUN_08103b00 registers these): channel table + callbacks
-        h.e.call(0x08104410, 0x10000730, 4, 0x10000758, max_insns=5_000_000)
+        # the MIDI module's init, as at boot: channel table + callbacks
+        h.e.call(SYM.fn['midi_in_init'], SYM.g['midi_channels'], 4, SYM.g['midi_callbacks'], max_insns=5_000_000)
         for v in range(4):
-            h.e.call(0x081045b8, v, h.e.r8(DEVICE + 0x1e + v), max_insns=100_000)
-        h.e.call(0x081045b8, 4, h.e.r8(DEVICE + 0x22), max_insns=100_000)
+            h.e.call(SYM.fn['midi_in_channel'], v, h.e.r8(DEVICE + 0x1e + v), max_insns=100_000)
+        h.e.call(SYM.fn['midi_in_channel'], 4, h.e.r8(DEVICE + 0x22), max_insns=100_000)
         self.voice_plays = []
-        h.e.stub(0x0810210c, lambda emu, v, on, note, vel, *_: self.voice_plays.append((v, on, note)))
+        h.e.stub(SYM.fn['voice_play'], lambda emu, v, on, note, vel, *_: self.voice_plays.append((v, on, note)))
         return h
 
     def send(self, h, *msg):
@@ -65,11 +64,11 @@ class TestLaneMidiIn(unittest.TestCase):
 
     def test_step_entry_on_page_b(self):
         h = self.harness()
-        ui = UI(h)
+        ui = h
         h.e.uc.mem_write(h.cave['pk_el_page'], b'\x01')
         held = [0x10 + 2, 0x10 + 6]                              # row 1 (lane 6), steps 3 and 7
         state = {'i': 0}
-        h.e.stub(0x0810b784, lambda emu, *_: 1)
+        h.e.stub(SYM.fn['steps_held'], lambda emu, *_: 1)
         h.e.stub(HELD_FIRST, lambda emu, it, *_: state.__setitem__('i', 0))
 
         def nxt(emu, it, *_):

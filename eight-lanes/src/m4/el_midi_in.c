@@ -23,14 +23,14 @@ static void lane_note_on(int l, int note, int vel, int multi)
     const uint8_t *s = el_seq();
     if (s[FW_SEQ_PLAY] == 1 && FW_U8(SYM_rec_flags + 1)) {
         /* REC: the nearest step, as stock (later than half a step: the next one) */
-        const uint8_t *clk = PTR(U32(vs + FW_VS_CLOCK));
-        int step = U16(vs + FW_VS_STEP);
-        if (U16(vs + FW_VS_SUBTICK) >= U16(clk + 0x1c) >> 1) {
-            int16_t nx = (int16_t)U16(vs + FW_VS_NEXT);
+        const uint8_t *clk = PTR(FW_U32(vs + FW_VS_CLOCK));
+        int step = FW_U16(vs + FW_VS_STEP);
+        if (FW_U16(vs + FW_VS_SUBTICK) >= FW_U16(clk + 0x1c) >> 1) {
+            int16_t nx = (int16_t)FW_U16(vs + FW_VS_NEXT);
             if (nx >= 0)
                 step = nx;
         }
-        uint8_t *rec = PTR(U32(vs + FW_VS_BLOCK)) + 8 * step;
+        uint8_t *rec = PTR(FW_U32(vs + FW_VS_BLOCK)) + 8 * step;
         rec[7] = (uint8_t)vel;
         rec[0] = 1;
         if (multi)
@@ -43,7 +43,7 @@ static void lane_note_on(int l, int note, int vel, int multi)
         while ((key = fw_held_next(it)) != -1) {
             if ((key >> 4) != l)
                 continue;
-            uint8_t *rec = PTR(U32(vs + FW_VS_BLOCK)) + 8 * (key & 15);
+            uint8_t *rec = PTR(FW_U32(vs + FW_VS_BLOCK)) + 8 * (key & 15);
             rec[6] = (uint8_t)note;
             rec[0] = 1;
             rec[7] = (uint8_t)vel;
@@ -65,7 +65,7 @@ static void lane_cc(int l, uint8_t cc, uint8_t val)
         if (map[slot] != cc)
             continue;
         uint32_t v = slot >= 8 ? (uint32_t)val * 3u / 128u : (uint32_t)val * 0x204u;
-        fw_record(vs + FW_VS_LOCKS, slot, v, pk_el_page ? l : 0xff, U16(vs + FW_VS_STEP));
+        fw_record(vs + FW_VS_LOCKS, slot, v, pk_el_page ? l : 0xff, FW_U16(vs + FW_VS_STEP));
     }
 }
 

@@ -49,7 +49,7 @@ void pk_el_record(uint8_t *locks, uint32_t slot, uint32_t value, int track, uint
     if (pk_el_page && t >= 0 && t < 4 && lane_slot(slot)) {
         uint8_t *vs = el_state(t + FIRST_LANE);
         locks = vs + FW_VS_LOCKS;
-        step = U16(vs + FW_VS_STEP);
+        step = FW_U16(vs + FW_VS_STEP);
         cc_lane = (uint8_t)(t + 1);
     } else if (t >= FIRST_LANE) {       /* SHIFT + knob already on the lane (pk_el_shift_vs) */
         cc_lane = (uint8_t)(t - FIRST_LANE + 1);
@@ -176,7 +176,7 @@ void pk_el_page0_render(void)
     page_led();
 }
 
-/* the key handler copies every voice's knob values (FUN_0810ca1c, 4 voices) before
+/* the key handler copies every voice's knob values (4 voices) before
  * this call: the lanes' too */
 
 void PK_NEXT(pk_el_after_store_values)(void);
@@ -188,7 +188,7 @@ void pk_el_after_store_values(void)
     PK_NEXT(pk_el_after_store_values)();
 }
 
-/* SHIFT + knob (pot handler FUN_08103d58): the moved column takes the knob, the others
+/* SHIFT + knob (the pot handler): the moved column takes the knob, the others
  * move by its turn from the values stored at SHIFT down, and all spring back when SHIFT
  * is released (unless REC was pressed meanwhile). On page B the engine controls do that
  * on the lanes: the handler's track for the first moved knob */
@@ -210,7 +210,7 @@ uint8_t *pk_el_restore_vs(int track)
 {
     uint8_t *vs = el_state(track + FIRST_LANE);
     for (int i = 0; i < 26; i += 2)
-        U16(vs + FW_VS_BASE + i) = U16(vs + FW_VS_STORED + i);
+        FW_U16(vs + FW_VS_BASE + i) = FW_U16(vs + FW_VS_STORED + i);
     return el_state(track);
 }
 
