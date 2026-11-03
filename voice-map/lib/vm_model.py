@@ -7,7 +7,7 @@ from perkons.verify import DEFAULT_PARAMS, boot, render_output
 
 # Patch-owned M7 RAM (see src/m7/pk_ram.h)
 PK_RAM_BASE = 0x2000c000
-PK_ARENA_BASE = PK_RAM_BASE + 0x100
+PK_ARENA_BASE = PK_RAM_BASE
 PK_ARENA_SIZE = 0x4000
 
 
