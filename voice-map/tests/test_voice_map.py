@@ -16,8 +16,9 @@ from perkons.patch import Patcher
 
 import vm_model
 from vm_model import boot_remapped, crosstalk
+from vm_live import remap
 
-vmf = load_patch('voice_map_fixed')
+load_patch('voice_map')
 import _voice_map_common as vmc  # noqa: E402  (on sys.path once a mod patch is loaded)
 
 MOD = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -30,8 +31,8 @@ def build_f1(stock, sym, digits, tmp):
     p = Patcher(stock)
     p.symbols = {'m7': sym, 'm4': Symbols(SYMBOLS_V130.replace('-m7.json', '-m4.json'))}
     p.build_dir = os.path.join(tmp, digits)
-    vmf.apply(p, digits)
-    return p.result()
+    vmc.apply_m7(p, [int(c) - 1 for c in digits])      # a fixed map from boot (M7 only)
+    return p.result(), p.cave_symbols['m7host']
 
 
 @unittest.skipUnless(shutil.which('arm-none-eabi-gcc'), 'arm-none-eabi-gcc not installed')
@@ -50,7 +51,11 @@ class TestVoiceMapF1(unittest.TestCase):
     def image(self, digits):
         if digits not in self.images:
             self.images[digits] = build_f1(self.stock, self.sym, digits, self.tmp)
-        return self.images[digits]
+        return self.images[digits][0]
+
+    def cave(self, digits):
+        self.image(digits)
+        return self.images[digits][1]
 
     def system(self, img):
         return M7System(img.segment('m7').data, self.sym, img.segment('m4').data).boot()
@@ -85,8 +90,7 @@ class TestVoiceMapF1(unittest.TestCase):
         e.send_triggers([1, 1, 1, 1], [(2, 1)] * 4)
         e.audio(2048)
         e.send(3, 2, b'\x00\x01')
-        e.send(3, 4, bytes([0, 1, 2, 3]))
-        e.pump()
+        remap(e, [0, 1, 2, 3], self.cave('4434'))
         e.audio(512)
         after = [bytes(e.uc.mem_read(lo, hi - lo)) for lo, hi in extents]
         self.assertEqual(before, after)
@@ -135,7 +139,7 @@ class TestNoCrosstalk(unittest.TestCase):
         tmp = tempfile.mkdtemp(prefix='pk-xt-')
         try:
             for digits in ('1111', '2222', '3333', '4444'):
-                img = build_f1(stock, sym, digits, tmp)
+                img, _ = build_f1(stock, sym, digits, tmp)
                 for algo in range(3):
                     for mode in range(3):
                         with self.subTest(map=digits, algo=algo, mode=mode):

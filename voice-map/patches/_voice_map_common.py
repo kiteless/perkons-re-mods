@@ -8,26 +8,42 @@ SRC_M4 = os.path.join(MOD, 'src', 'm4')
 
 
 FIRST_EXTRA = 5      # engine numbers 1-4 are the stock engines
-MAX_ENGINE = 15      # one nibble per output in PK_MAP / one byte per output on the wire
+MAX_ENGINE = 16      # 16 engine page columns; engine - 1 is a nibble per output in PK_MAP
 
 
 def engines(p):
     """Registry other mods add engines to, by name, from their apply():
 
-        engines(p)['slinks'] = {'sources': [...], 'include_dirs': [...],
-                                'build': 'pk_sl_build'}   # void build(uint8_t *arena, unsigned out)
+        engines(p)['zibens'] = {'sources': [...], 'include_dirs': [...],
+                                'build': 'pk_zb_build',    # void build(uint8_t *arena, unsigned out)
+                                'slot': 5}                 # optional: its engine number
 
-    The name is what voices.json selects it by. Kept in p.shared so mods needn't import
-    this file; numbered() gives them their numbers."""
+    The slot is the engine's number, its column on the engine page (5-16; 1-4 are the stock
+    engines); the Mod Matrix gives each voice the slot it's installed in. Engines without
+    one take the free slots after, in name order. Kept in p.shared so mods needn't import
+    this file; numbered() gives the numbers."""
     return p.shared.setdefault('voice_map', {'engines': {}})['engines']
 
 
 def numbered(p):
-    """{engine number: (name, entry)}: the registered engines from FIRST_EXTRA, in name order."""
-    out = {FIRST_EXTRA + i: (n, engines(p)[n]) for i, n in enumerate(sorted(engines(p)))}
-    if out and max(out) > MAX_ENGINE:
-        raise ValueError(f'voice-map: at most {MAX_ENGINE - FIRST_EXTRA + 1} extra engines')
-    return out
+    """{engine number: (name, entry)} of the registered engines."""
+    out = {}
+    for n, e in engines(p).items():
+        k = e.get('slot')
+        if k is None:
+            continue
+        if not FIRST_EXTRA <= k <= MAX_ENGINE:
+            raise ValueError(f'voice-map: {n} in slot {k}: slots {FIRST_EXTRA}-{MAX_ENGINE}')
+        if k in out:
+            raise ValueError(f'voice-map: slot {k} taken by {out[k][0]} and {n}')
+        out[k] = (n, e)
+    free = (k for k in range(FIRST_EXTRA, MAX_ENGINE + 1) if k not in out)
+    for n in sorted(n for n, e in engines(p).items() if e.get('slot') is None):
+        k = next(free, None)
+        if k is None:
+            raise ValueError(f'voice-map: at most {MAX_ENGINE - FIRST_EXTRA + 1} extra engines')
+        out[k] = (n, engines(p)[n])
+    return dict(sorted(out.items()))
 
 
 def apply_m7(p, initial_map):
@@ -42,7 +58,9 @@ def apply_m7(p, initial_map):
     h.add([os.path.join(SRC_M7, 'voice_map.c')], [SRC_M7], init='pk_vm_boot',
           defines={'PK_MAP': f'0x{packed:04x}u'},
           headers={'slot_layout.h': layout, 'pk_extra_engines.h': lambda: _extra_table(numbered(p))})
-    h.message('voice-map', 'pk_vm_on_map')
+    h.message('voice-map', 'pk_vm_on_map', ordered=True)
+    h.redirect_call('trigger_dispatch.call_set_velocity', 'pk_vm_velocity',
+                    'trigger dispatch: an output switches engine at its next note')
 
     def extras():
         for _, (_, e) in sorted(numbered(p).items()):
@@ -67,7 +85,8 @@ def _extra_table(extra):
     if n:
         lines.append('typedef void (*pk_extra_build_t)(uint8_t *obj, unsigned out);')
         lines += [f'void {e["build"]}(uint8_t *obj, unsigned out);' for _, e in extra.values()]
-        row = ', '.join(extra[FIRST_EXTRA + i][1]['build'] for i in range(n))
+        row = ', '.join(extra[FIRST_EXTRA + i][1]['build'] if FIRST_EXTRA + i in extra else '0'
+                        for i in range(n))
         lines.append(f'static const pk_extra_build_t pk_extra_build[{n}] = {{{row}}};')
     return '\n'.join(lines) + '\n'
 
@@ -76,27 +95,32 @@ STOCK_NAMES = ['voice1', 'voice2', 'voice3', 'voice4']
 
 
 def engine_names(p):
-    """voices.json names by engine number: index 0 = unknown/stock, 1-4 the stock engines,
-    then the registered extra engines."""
-    names = [''] + STOCK_NAMES + [n for _, (n, _) in sorted(numbered(p).items())]
-    if len(set(names)) != len(names):
-        raise ValueError('voice-map: an engine name is already taken')
-    return names
+    """Engine names by engine number: index 0 = unknown/stock, 1-4 the stock engines,
+    then the registered extra engines by slot (an empty slot: '')."""
+    extra = numbered(p)
+    top = max(extra, default=len(STOCK_NAMES))
+    return [''] + STOCK_NAMES + [extra[k][0] if k in extra else '' for k in range(FIRST_EXTRA, top + 1)]
 
 
-def apply_m4(p, per_bank):
-    """M4: read voices.json after each bank's samples load and send the map to the M7.
-    Built by the framework's M4 host; the engine names are generated at link time, so
-    they include engines other mods register after this."""
+def apply_m4(p):
+    """M4 (on the framework's M4 host): each kit's engines (kit sidecar record VMAP), sent
+    to the M7 when a kit loads; the engine page (a page of its own: KIT + MOD)."""
     from perkons import m4host
     h = m4host.host(p)
 
-    def names_header():
-        names = engine_names(p)
+    def engines_header():
+        names = engine_names(p)[1:]                       # engine 1 first
+        mask = sum(1 << i for i, n in enumerate(names) if n)
         return ('/* generated by voice-map/patches/_voice_map_common.py -- do not edit */\n'
-                '#pragma once\n#define PK_ENGINE_NAMES ' + ', '.join(f'"{n}"' for n in names) + '\n')
-    h.add([os.path.join(SRC_M4, 'voice_map_m4.c')], [SRC_M4], defines={'PK_PER_BANK': '1' if per_bank else '0'},
-          headers={'pk_engine_names.h': names_header})
-    for site in ('boot_init.call_load_samples', 'switch_bank.call_load_samples',
-                 'boot_load_last_bank.call_load_samples'):
-        h.redirect_call(site, 'pk_vm_load_samples', f'{site.split(".")[0]}: load_samples, then the voice map')
+                f'#pragma once\n#define PK_N_ENGINES {len(names)}\n'
+                f'#define PK_ENGINE_MASK 0x{mask:04x}u     /* bit e: column e + 1 has an engine */\n')
+    h.add([os.path.join(SRC_M4, 'voice_map_m4.c')], [SRC_M4], init='pk_vm_init',
+          headers={'pk_engines.h': engines_header})
+    h.store('kit', 'VMAP', 'pk_vm_kit_save', 'pk_vm_kit_restore')
+    for site in sorted(k for k in p.symbols['m4'].sites if k.startswith('kits.load.')):
+        if p.symbols['m4'].site(site).get('branch'):
+            h.redirect_branch(site, 'pk_vm_kit_load', 'kit load: the kit\'s engines')
+        else:
+            h.redirect_call(site, 'pk_vm_kit_load', 'kit load: the kit\'s engines')
+    h.page('engines', key='pk_vm_page_key', draw='pk_vm_page_draw', leave='pk_vm_page_leave')
+    h.replace_word('keys.handler_lit', 'pk_vm_key_event', 'KIT + MOD: the engine page')
