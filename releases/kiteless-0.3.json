@@ -1,0 +1,20 @@
+{
+  "name": "kiteless",
+  "version": "0.3",
+  "base": "v1.3.0",
+  "base_image": "perkons_v1.3.0-0-force.img",
+  "tag": "kiteless0.3",
+  "banner": "+ kiteless 0.3 (voice-map, voice-zibens, fx-reverb, fx-freeze, eight-lanes, per-track-lfo, pattern-bpm)",
+  "patches": ["voice_map", "voice_zibens:5", "fx_reverb", "fx_freeze", "eight_lanes", "per_track_lfo", "pattern_bpm"],
+  "summary": "Any engine on any voice, chosen per kit on its own page, plus the Zibens synth voice, a reverb and a freeze for the FX section, four MIDI tracks on a second page, LFO groups and a tempo per pattern.",
+  "notes": [
+    "voice-map: KIT + MOD opens the engine page. Each row is a voice, each column an engine (1-4 the official ones, 5 Zibens); press a step to choose it and hear it. The choice is saved with the kit. Engines chosen in 0.2's voices.json don't carry over: choose them on the engine page.",
+    "voice-zibens: the synth voice is called Zibens again (it was voice-slinks in 0.2).",
+    "fx-reverb (config row 3 step 15), fx-freeze (row 3 step 16) and pattern-bpm (row 3 step 14) are off until switched on in the config menu.",
+    "eight-lanes: SHIFT + PATTERN flips to tracks 5-8 (MIDI only); their data goes in BANKS/NN/PP.PAX and KITS/PP.KIX beside the stock files. Patterns and kits last saved before 0.2 (PP.PA2 / PP.KI2) no longer load their tracks 5-8: load and save them with 0.2 first.",
+    "per-track-lfo: hold trigger keys and turn the LFO knobs to give those voices their own LFO; RESET + RATE puts them back on one.",
+    "pattern-bpm: each pattern keeps the tempo it was saved at and plays at it.",
+    "Saving a kit flashes the saved step again, as on official 1.3.0 (0.2 didn't).",
+    "Without config changes or held keys the unit behaves like official 1.3.0, apart from eight-lanes' second page and the engine page being there."
+  ]
+}
