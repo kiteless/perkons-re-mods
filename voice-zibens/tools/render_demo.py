@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Render Slinks demo phrases through the emulated M7 (real message loop and audio
+"""Render Zibens demo phrases through the emulated M7 (real message loop and audio
 callback) to WAV files for listening.
 
-  cd ../perkons && .venv/bin/python ../perkons-re-mods/voice-slinks/tools/render_demo.py [out_dir]
+  cd ../perkons && .venv/bin/python ../perkons-re-mods/voice-zibens/tools/render_demo.py [out_dir]
 
-Writes <out_dir>/NN_name.wav (default ../perkons/out/slinks). Each phrase is a short
+Writes <out_dir>/NN_name.wav (default ../perkons/out/zibens). Each phrase is a short
 sequence of triggers with TUNE stepping through the scale, like a sequenced bassline.
 """
 import os
@@ -19,6 +19,11 @@ from fixtures import SYMBOLS_V130, build_patched, require_image  # noqa: E402
 from perkons import verify  # noqa: E402
 from perkons.emu import Symbols, write_wav  # noqa: E402
 from perkons.fwimage import Image  # noqa: E402
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'voice-map', 'lib'))
+from vm_live import remap  # noqa: E402
+
+CAVE = {}
 
 SAW, SQUARE, SINE = 1, 0, 2
 PENT, DORIAN, PHRYGIAN = 1, 0, 2
@@ -41,8 +46,7 @@ PHRASES = [
 
 def render_phrase(img, sym, scale, wave, steps, decay, p1, r0, r1, notes, steps_total=20):
     e = verify.boot(img, sym)
-    e.send(3, 4, bytes([4, 1, 2, 3]))          # Slinks on output 1
-    e.pump()
+    remap(e, [4, 1, 2, 3], CAVE['m7host'])     # zibens on output 1
     out = []
     n = max(len(steps) * 2, len(notes or []))
     for i in range(n):
@@ -61,10 +65,11 @@ def render_phrase(img, sym, scale, wave, steps, decay, p1, r0, r1, notes, steps_
 
 
 def main():
-    out_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(FRAMEWORK, 'out', 'slinks')
+    out_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(FRAMEWORK, 'out', 'zibens')
     stock = Image.load(require_image('v1.3.0'))
     sym = Symbols(SYMBOLS_V130)
-    img, _ = build_patched(stock, ['voice_map:bank', 'voice_slinks'], tempfile.mkdtemp(prefix='pk-sl-demo-'))
+    img, p = build_patched(stock, ['voice_map', 'voice_zibens'], tempfile.mkdtemp(prefix='pk-zb-demo-'))
+    CAVE.update(p.cave_symbols)
     for i, (name, scale, wave, steps, decay, p1, r0, r1, notes) in enumerate(PHRASES, 1):
         x = render_phrase(img, sym, scale, wave, steps, decay, p1, r0, r1, notes)
         path = os.path.join(out_dir, f'{i:02d}_{name}.wav')

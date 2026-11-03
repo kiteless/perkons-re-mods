@@ -1,4 +1,4 @@
-"""Slinks on the M7, through main()'s message loop and the real audio callback, as a
+"""Zibens on the M7, through main()'s message loop and the real audio callback, as a
 voice-map engine (config message type 4 puts it on an output). Needs arm-none-eabi-gcc."""
 import math
 import shutil
@@ -7,9 +7,14 @@ import unittest
 
 from fixtures import SYMBOLS_V130, build_patched, require_image
 from perkons import verify
-from perkons.emu import M4Emu, Symbols
+from perkons.emu import Symbols
 from perkons.fwimage import Image
 from perkons.patch import PatchError
+
+import os  # noqa: E402
+import sys  # noqa: E402
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'voice-map', 'lib'))
+from vm_live import remap  # noqa: E402
 
 SR = 48000
 POS1, POS2, POS3 = 1, 0, 2          # switch values for panel positions 1, 2, 3
@@ -56,14 +61,15 @@ def tone_for_step(step, steps):
 
 
 @unittest.skipUnless(shutil.which('arm-none-eabi-gcc'), 'arm-none-eabi-gcc not installed')
-class TestSlinks(unittest.TestCase):
+class TestZibens(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.stock = Image.load(require_image('v1.3.0'))
         cls.sym = Symbols(SYMBOLS_V130)
         cls.tmp = tempfile.mkdtemp(prefix='pk-sl-')
-        cls.img, p = build_patched(cls.stock, ['voice_map:bank', 'voice_slinks'], cls.tmp + '/a')
+        cls.img, p = build_patched(cls.stock, ['voice_map', 'voice_zibens'], cls.tmp + '/a')
         cls.syms = p.cave_symbols
+        cls.cave = p.cave_symbols['m7host']
 
     @classmethod
     def tearDownClass(cls):
@@ -71,12 +77,11 @@ class TestSlinks(unittest.TestCase):
 
     # -- helpers -------------------------------------------------------------------------
     def machine(self, out=0):
-        """Booted M7 with Slinks on `out` (map value 4 = voices.json 5)."""
+        """Booted M7 with zibens on `out` (engine 5: map value 4)."""
         e = verify.boot(self.img, self.sym)
         m = [0, 1, 2, 3]
         m[out] = 4
-        e.send(3, 4, bytes(m))
-        e.pump()
+        remap(e, m, self.cave)
         e.audio(960)            # let the mute-fade gain settle (it starts at 0 after boot)
         return e
 
@@ -97,39 +102,31 @@ class TestSlinks(unittest.TestCase):
         return f0(x[960:])
 
     # -- wiring ---------------------------------------------------------------------------
-    def test_remap_to_slinks_and_back(self):
+    def test_remap_to_zibens_and_back(self):
         e = self.machine(2)
-        self.assertEqual(e.class_of(e.slot(2)), 'cSlinks')
+        self.assertEqual(e.class_of(e.slot(2)), 'cZibens')
         self.assertEqual([e.class_of(e.slot(o)) for o in (0, 1, 3)], ['cFirstSlot', 'cSecondSlot', 'cFourthSlot'])
         self.assertGreater(max(map(abs, self.play(e, [2048, 2048, 0, 0], out=2))), 1000)
-        e.send(3, 4, bytes([0, 1, 2, 3]))
-        e.pump()
+        remap(e, [0, 1, 2, 3], self.cave)
         self.assertEqual(e.class_of(e.slot(2)), 'cThirdSlot')
 
-    def test_voices_json_name_selects_slinks(self):
-        """M4: "slinks" in voices.json -> map message -> M7 runs Slinks on that output."""
-        s4 = Symbols(SYMBOLS_V130.replace('-m7.json', '-m4.json'))
-        sd = {'voices.json': b'{"voice1": "voice1", "voice2": "voice4", "voice3": "slinks"}'}
-        e4 = M4Emu(self.img.segment('m4').data, s4, self.img.segment('m7').data, sd=sd).boot()
-        e4.stub(s4.fn['load_samples'], lambda emu, *a: 0)
-        e4.call(self.syms['m4host']['pk_vm_load_samples'], 0, max_insns=50_000_000)
-        m = [p for t, p in e4.sent(3) if t == 4][0]
-        self.assertEqual(list(m), [0, 3, 4, 3])
+    def test_engine_page_column_5_is_zibens(self):
+        """Engine 5 on the engine page is the map value 4 the M7 builds zibens for."""
         e = verify.boot(self.img, self.sym)
-        e.send(3, 4, m)
-        e.pump()
+        e.send(2, 4, bytes([0, 3, 4, 3]))
+        e.send_triggers([1, 1, 1, 1], [(0, 0)] * 4)
+        e.audio(64)
         self.assertEqual([e.class_of(e.slot(o)) for o in range(4)],
-                         ['cFirstSlot', 'cFourthSlot', 'cSlinks', 'cFourthSlot'])
+                         ['cFirstSlot', 'cFourthSlot', 'cZibens', 'cFourthSlot'])
 
     def test_needs_voice_map(self):
         with self.assertRaises(PatchError):
-            build_patched(self.stock, ['voice_slinks'], self.tmp + '/b')
+            build_patched(self.stock, ['voice_zibens'], self.tmp + '/b')
 
     def test_unknown_engine_number_means_stock(self):
-        img, _ = build_patched(self.stock, ['voice_map:bank'], self.tmp + '/c')   # no slinks
+        img, p = build_patched(self.stock, ['voice_map'], self.tmp + '/c')   # no zibens
         e = verify.boot(img, self.sym)
-        e.send(3, 4, bytes([4, 1, 2, 3]))
-        e.pump()
+        remap(e, [4, 1, 2, 3], p.cave_symbols['m7host'])
         self.assertEqual(e.class_of(e.slot(0)), 'cFirstSlot')
 
     def test_stock_outputs_unchanged(self):
@@ -272,5 +269,5 @@ class TestSlinks(unittest.TestCase):
             counts.append(m.insn_count / 960)
             m.count_insns(False)
         extra = counts[0] - counts[1]
-        print(f'\nSlinks: ~{extra:.0f} instructions per sample more than stock output 1')
+        print(f'\nZibens: ~{extra:.0f} instructions per sample more than stock output 1')
         self.assertLess(extra, 800)

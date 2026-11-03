@@ -1,0 +1,17 @@
+{
+  "options": [
+    {
+      "id": "voice-zibens",
+      "title": "Zibens",
+      "summary": "SCALE-LOCKED RESONANT SAW, PWM SQUARE, AND WAVEFOLDED SINE. TOP SWITCH SELECTS SCALE, BOTTOM WAVEFORM.",
+      "patches": [
+        "voice_zibens"
+      ],
+      "code": "zb",
+      "requires": [
+        "voice-map"
+      ],
+      "kind": "voice"
+    }
+  ]
+}

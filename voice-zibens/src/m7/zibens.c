@@ -1,7 +1,7 @@
-/* Slinks: a scale-stepped synth voice with an MS-style resonant filter (M7).
+/* Zibens: a scale-stepped synth voice with an MS-style resonant filter (M7).
  *
- * An extra voice-map engine ("slinks" in voices.json): voice-map builds one in an output's
- * arena with pk_sl_build(). The object is cVoice-compatible: the fields the firmware
+ * An extra voice-map engine ("zibens"): voice-map builds one in an output's
+ * arena with pk_zb_build(). The object is cVoice-compatible: the fields the firmware
  * writes (algo, mode, velocity, note, param pointers, mute, gain) sit at the stock
  * offsets, and the vtable has the four methods the firmware calls (trigger, init,
  * update, render).
@@ -25,7 +25,8 @@
 #define HYST            0.2f        /* TUNE hysteresis, fraction of a step each side */
 #define LEVEL           8000.0f     /* peak at velocity 127, like the stock tonal voices */
 #define PI              3.14159265f
-#define MAGIC           0x5a49424eu /* 'ZIBN' */
+#define MAGIC           0x5a424e53u /* 'ZBNS' */
+#define COEF_EVERY      16          /* samples between filter-coefficient updates */
 
 /* switch values are 1, 0, 2 for panel positions 1, 2, 3 */
 enum { POS1 = 1, POS2 = 0, POS3 = 2 };
@@ -62,18 +63,20 @@ typedef struct {
     int32_t wave;
     int32_t stage;
     pole_t lp1, lp2, hp1;               /* Korg-35 low-pass */
+    float beta_lp2, beta_hp1, alpha;    /* its coefficients (set every COEF_EVERY samples) */
+    int32_t coef_age;
     float fold_prev;                    /* sine folder: last 2x sub-sample */
     float dc_x, dc_y;                   /* sine folder: DC blocker */
-} sl_t;
+} zb_t;
 
-_Static_assert(__builtin_offsetof(sl_t, algo) == OFF_cVoice_algo, "algo");
-_Static_assert(__builtin_offsetof(sl_t, mode) == OFF_cVoice_mode, "mode");
-_Static_assert(__builtin_offsetof(sl_t, velocity) == OFF_cVoice_velocity, "velocity");
-_Static_assert(__builtin_offsetof(sl_t, note) == OFF_cVoice_accent, "note (accent)");
-_Static_assert(__builtin_offsetof(sl_t, param) == OFF_cVoice_param_ptrs, "param pointers");
-_Static_assert(__builtin_offsetof(sl_t, mute) == OFF_cVoice_mute, "mute");
-_Static_assert(__builtin_offsetof(sl_t, gain) == OFF_cVoice_gain, "gain");
-_Static_assert(sizeof(sl_t) <= 0x4000, "fits a voice-map arena");
+_Static_assert(__builtin_offsetof(zb_t, algo) == OFF_cVoice_algo, "algo");
+_Static_assert(__builtin_offsetof(zb_t, mode) == OFF_cVoice_mode, "mode");
+_Static_assert(__builtin_offsetof(zb_t, velocity) == OFF_cVoice_velocity, "velocity");
+_Static_assert(__builtin_offsetof(zb_t, note) == OFF_cVoice_accent, "note (accent)");
+_Static_assert(__builtin_offsetof(zb_t, param) == OFF_cVoice_param_ptrs, "param pointers");
+_Static_assert(__builtin_offsetof(zb_t, mute) == OFF_cVoice_mute, "mute");
+_Static_assert(__builtin_offsetof(zb_t, gain) == OFF_cVoice_gain, "gain");
+_Static_assert(sizeof(zb_t) <= 0x4000, "fits a voice-map arena");
 
 /* ---- small maths (no libm) --------------------------------------------------------- */
 
@@ -152,7 +155,7 @@ static inline float sfold(float x)
     return sin2pi(p);
 }
 
-static inline float knob(const sl_t *z, int k)
+static inline float knob(const zb_t *z, int k)
 {
     return clampf((float)*z->param[k] * (1.0f / 4095.0f), 0.0f, 1.0f);
 }
@@ -192,7 +195,7 @@ static float decay_t60(float d)
 
 static void update(cVoice *v)
 {
-    sl_t *z = (sl_t *)v;
+    zb_t *z = (zb_t *)v;
     if (z->magic != MAGIC)
         return;
 
@@ -230,9 +233,10 @@ static void update(cVoice *v)
 
 static void trigger(cVoice *v)
 {
-    sl_t *z = (sl_t *)v;
+    zb_t *z = (zb_t *)v;
     if (z->magic != MAGIC)
         return;
+    z->coef_age = 0;                    /* the attack's cutoff from its first sample */
     if (z->stage == IDLE || z->env < 1e-4f) {
         z->phase = 0.0f;
         z->lp1.z1 = z->lp2.z1 = z->hp1.z1 = 0.0f;
@@ -244,7 +248,7 @@ static void trigger(cVoice *v)
 
 static void init(cVoice *v)
 {
-    sl_t *z = (sl_t *)v;
+    zb_t *z = (zb_t *)v;
     z->magic = MAGIC;
     z->phase = z->env = 0.0f;
     z->stage = IDLE;
@@ -268,7 +272,7 @@ static inline float pole_lp(pole_t *p, float x)
 /* The sine's fold macro (PARAM2 = z->extra): fold depth and, rising with it, symmetry
  * (a bias before the fold: even harmonics). Two smooth stages, up to ~16x; 2x
  * oversampled. */
-static float folded_sine(sl_t *z, float p, float dt)
+static float folded_sine(zb_t *z, float p, float dt)
 {
     if (z->extra <= 0.0f) {                     /* PARAM2 at 0: a pure sine, folder idle */
         z->fold_prev = z->dc_x = z->dc_y = 0.0f;
@@ -293,7 +297,7 @@ static float folded_sine(sl_t *z, float p, float dt)
     return o;
 }
 
-static float oscillator(sl_t *z)
+static float oscillator(zb_t *z)
 {
     float dt = z->inc, p = z->phase, s;
     if (z->wave == WAVE_SAW) {
@@ -312,20 +316,25 @@ static float oscillator(sl_t *z)
     return s;
 }
 
-/* Korg-35 low-pass (Pirkle's VA model), saturating feedback; cutoff in Hz */
-static float ms_filter(sl_t *z, float x, float fc)
+/* Korg-35 low-pass (Pirkle's VA model), saturating feedback: its coefficients for a
+ * cutoff in Hz (a tan and three divisions, so every COEF_EVERY samples, not each) */
+static void ms_coefs(zb_t *z, float fc)
 {
     float g = tanf_(PI * fc / SR);
     float G = g / (1.0f + g);
     float k = z->k;
     z->lp1.a = z->lp2.a = z->hp1.a = G;
-    float beta_lp2 = (k - k * G) / (1.0f + g);
-    float beta_hp1 = -1.0f / (1.0f + g);
-    float alpha = 1.0f / (1.0f - k * G + k * G * G);
+    z->beta_lp2 = (k - k * G) / (1.0f + g);
+    z->beta_hp1 = -1.0f / (1.0f + g);
+    z->alpha = 1.0f / (1.0f - k * G + k * G * G);
+}
 
+static float ms_filter(zb_t *z, float x)
+{
+    float k = z->k;
     float y1 = pole_lp(&z->lp1, x);
-    float s35 = z->hp1.z1 * beta_hp1 + z->lp2.z1 * beta_lp2;
-    float u = tanh_(1.5f * alpha * (y1 + s35));
+    float s35 = z->hp1.z1 * z->beta_hp1 + z->lp2.z1 * z->beta_lp2;
+    float u = tanh_(1.5f * z->alpha * (y1 + s35));
     float y = k * pole_lp(&z->lp2, u);
     pole_lp(&z->hp1, y);                                        /* its high-pass output isn't needed */
     return y / k;
@@ -333,7 +342,7 @@ static float ms_filter(sl_t *z, float x, float fc)
 
 static int16_t render(cVoice *v)
 {
-    sl_t *z = (sl_t *)v;
+    zb_t *z = (zb_t *)v;
     fw_tick_mute_fade(v);
     if (z->magic != MAGIC || z->stage == IDLE)
         return 0;
@@ -355,8 +364,11 @@ static int16_t render(cVoice *v)
 
     float y = oscillator(z);
     if (z->wave == WAVE_SAW) {          /* only the saw goes through the MS filter */
-        float fc = clampf(z->inc * SR * exp2f_(1.0f + 4.0f * z->env), 20.0f, 0.35f * SR);
-        y = ms_filter(z, y, fc);
+        if (z->coef_age-- <= 0) {
+            z->coef_age = COEF_EVERY - 1;
+            ms_coefs(z, clampf(z->inc * SR * exp2f_(1.0f + 4.0f * z->env), 20.0f, 0.35f * SR));
+        }
+        y = ms_filter(z, y);
     }
     float out = clampf(y * z->env * z->amp * LEVEL, -32767.0f, 32767.0f);
     return (int16_t)(((int32_t)out * z->gain) >> 16);
@@ -365,20 +377,20 @@ static int16_t render(cVoice *v)
 /* ---- vtable and construction --------------------------------------------------------- */
 
 /* RTTI-shaped word before the vtable (tools read class names from vtable[-1]) */
-static const char sl_name[] = "7cSlinks";
-static const struct { const void *vptr; const char *name; } sl_typeinfo = {0, sl_name};
+static const char zb_name[] = "7cZibens";
+static const struct { const void *vptr; const char *name; } zb_typeinfo = {0, zb_name};
 static const struct {
     const void *typeinfo;
     cVoice_vtbl vtbl;
-} sl_vtable = {&sl_typeinfo, {trigger, init, update, render}};
+} zb_vtable = {&zb_typeinfo, {trigger, init, update, render}};
 
-/* voice-map: build a Slinks instance in `obj` (an output's arena) for output `out` */
-void pk_sl_build(uint8_t *obj, unsigned out)
+/* voice-map: build a Zibens instance in `obj` (an output's arena) for output `out` */
+void pk_zb_build(uint8_t *obj, unsigned out)
 {
-    for (unsigned i = 0; i < sizeof(sl_t); i++)
+    for (unsigned i = 0; i < sizeof(zb_t); i++)
         obj[i] = 0;
-    sl_t *z = (sl_t *)obj;
-    z->vtbl = &sl_vtable.vtbl;
+    zb_t *z = (zb_t *)obj;
+    z->vtbl = &zb_vtable.vtbl;
     for (int k = 0; k < 4; k++)
         z->param[k] = &FW_PARAMS[out][k];
     z->note = NOTE_REF;

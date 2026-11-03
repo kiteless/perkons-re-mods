@@ -1,30 +1,25 @@
-# voice-slinks
+# voice-zibens
 
 A new synth voice for the Pērkons: scale-locked resonant saw, PWM square and wavefolded
-sine, on any of the four voices. *slinks* is Latvian for "something that lacks effort".
+sine, on any of the four voices. *Zibens* is Latvian for "lightning", the flash that goes with Pērkons's thunder.
 
 Based on official Pērkons firmware **1.3.0**. Unofficial; not affiliated with Erica Synths.
 
 ## Getting it
 
-Build Pērkons firmware with **voice-slinks** ticked in the **Mod Matrix**, from your own official
+Build Pērkons firmware with **voice-zibens** ticked in the **Mod Matrix**, from your own official
 firmware 1.3.0: follow [Get modded firmware](https://github.com/kiteless/perkons-re#get-modded-firmware)
 in perkons-re. No firmware files are provided here. To remove it, flash the official
 firmware again.
-The Mod Matrix ticks VOICE MAP too: voice-slinks runs as a voice-map engine.
+voice-zibens runs as a voice-map engine: in the Mod Matrix, on the **ENGINES** tab, tick
+**ENABLE CUSTOM VOICE ENGINES**, then install voice-zibens. It takes the slot you install it in
+(5 if it's the first).
 
 ## Putting it on a voice
 
-In `voices.json` (SD card root, or `BANKS/NN/` for one bank), give the voice the engine
-`"slinks"`:
-
-```json
-{ "voice1": "voice1", "voice2": "voice2", "voice3": "slinks", "voice4": "voice4" }
-```
-
-Power-cycle or switch banks to load it. If the voice stays stock, look for a
-`voices.json` in the bank you're on: a bank's own file replaces the root one entirely.
-The voice's knobs, switches, trigger key and input, output jack, and the analog filter,
+On the voice-map engine page (KIT + MOD), press voice-zibens' column (its
+slot: 5 if it was the first voice installed) in the voice's row; its next note plays voice-zibens. The choice is kept with the kit: see
+[voice-map](../voice-map/). The voice's knobs, switches, trigger key and input, output jack, and the analog filter,
 drive, FX send and level all stay with the voice; only the sound engine changes.
 
 ## At a glance
@@ -82,7 +77,7 @@ between, the knob is divided evenly into the scale's notes.
 | position 2 | **square**, hollow and woody | **pulse width**: 50% (square) → about 10% (thin, nasal) |
 | position 3 | **sine**, pure and round | **wavefold**: pure sine → reedy → brassy → buzzy and lopsided (up to ~16× folding) |
 
-**The saw's filter.** Only the saw goes through voice-slinks's own resonant low-pass (an
+**The saw's filter.** Only the saw goes through voice-zibens's own resonant low-pass (an
 MS-style, saturating two-pole filter). Its cutoff follows the note and the envelope: on
 each hit it opens to about 32× the note's frequency and closes towards 2× as the note
 decays. That's the squelch, and PARAM2 sets how much resonance rides on it. Square and
@@ -122,25 +117,25 @@ The same curve as the stock voices, as the time for the note to fall by 60 dB:
 * **Velocity** scales the level linearly, as on the stock voices (velocity 64 is half as
   loud as 127).
 * **Mute** fades out over about 10 ms, exactly like a stock voice.
-* The peak level matches the stock tonal voices, so voice-slinks sits with the other voices at
+* The peak level matches the stock tonal voices, so voice-zibens sits with the other voices at
   the same LEVEL setting. A square is denser than a filtered saw, so square mode can sound
   slightly louder at the same setting.
 
 ## MIDI and the sequencer
 
-voice-slinks follows MIDI exactly as the stock voices do; nothing on the MIDI side is changed.
+voice-zibens follows MIDI exactly as the stock voices do; nothing on the MIDI side is changed.
 
 * **Notes transpose it.** Note 36 (the note the trigger keys and pads send) means no
   change; each note above or below moves it by a semitone. **Pure transposition**:
   incoming notes are not forced into the scale.
-  * With TUNE on the scale's root (C), a keyboard plays voice-slinks chromatically.
+  * With TUNE on the scale's root (C), a keyboard plays voice-zibens chromatically.
   * With TUNE elsewhere, the note shifts the whole scale: playing F (note 41) moves a C
     minor-pentatonic line up to F minor pentatonic.
 * **Multi-channel MIDI mode** (voice 1 = channel 1, and so on): any note on the voice's
   channel plays it at that pitch, and notes can be recorded into steps or entered with a
   held step button, as with the stock voices.
 * **Single-channel MIDI mode**: notes 36/37/38/39 trigger voices 1-4, and the stock
-  firmware also uses that note as the pitch. So a voice-slinks on voice 2, 3 or 4 played over
+  firmware also uses that note as the pitch. So a voice-zibens on voice 2, 3 or 4 played over
   MIDI in this mode sounds 1, 2 or 3 semitones higher than from its own trigger key
   (stock behaviour, inherited).
 * A trigger with no note (note 0) keeps the previous note.
