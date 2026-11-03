@@ -25,8 +25,8 @@ on your computer.
 
 | mod | what it does | how to use it |
 |---|---|---|
-| **voice-map** | any of the four voices can run any of the four voice engines (or voice-slinks), chosen per bank | [voice-map/README.md](voice-map/README.md) |
-| **voice-slinks** | a new synth voice: scale-locked resonant saw, PWM square, wavefolded sine (needs voice-map) | [voice-slinks/README.md](voice-slinks/README.md) |
+| **voice-map** | any of the four voices can run any of the four voice engines (or voice-zibens), chosen per kit on the engine page (KIT + MOD) | [voice-map/README.md](voice-map/README.md) |
+| **voice-zibens** | a new synth voice: scale-locked resonant saw, PWM square, wavefolded sine (needs voice-map) | [voice-zibens/README.md](voice-zibens/README.md) |
 | **fx-reverb** | a reverb in place of the BBD delay, switched in the config menu | [fx-reverb/README.md](fx-reverb/README.md) |
 | **fx-freeze** | the FX section's 2-way switch as freeze: loops the delay, or holds the reverb | [fx-freeze/README.md](fx-freeze/README.md) |
 | **eight-lanes** | four more sequencer tracks, 5-8, on a second page (SHIFT + PATTERN), sending MIDI only | [eight-lanes/README.md](eight-lanes/README.md) |
@@ -42,7 +42,7 @@ Clone this repo next to `perkons-re`; the framework finds it (or set `PERKONS_MO
 
 ```sh
 make test                                   # framework + mod tests
-make build PATCHES='voice_map:bank voice_slinks'  # a firmware file in builds/
+make build PATCHES='voice_map:bank voice_zibens'  # a firmware file in builds/
 make ui                                     # the Mod Matrix
 ```
 
