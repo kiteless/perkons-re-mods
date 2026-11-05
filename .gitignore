@@ -7,3 +7,6 @@ __pycache__/
 *.wav
 *.pdf
 builds/
+
+# notes for Claude Code: kept in the private perkons-re-docs (claude/), linked here
+CLAUDE.md
