@@ -27,6 +27,7 @@ on your computer.
 |---|---|---|
 | **voice-map** | any of the four voices can run any of the four voice engines (or voice-zibens), chosen per kit on the engine page (KIT + MOD) | [voice-map/README.md](voice-map/README.md) |
 | **voice-zibens** | a new synth voice: scale-locked resonant saw, PWM square, wavefolded sine (needs voice-map) | [voice-zibens/README.md](voice-zibens/README.md) |
+| **voice-akords** | a chord synth voice: chords in your scale, automatic progressions, 14 presets, a settings page per voice (needs voice-map) | [voice-akords/README.md](voice-akords/README.md) |
 | **fx-reverb** | a reverb in place of the BBD delay, switched in the config menu | [fx-reverb/README.md](fx-reverb/README.md) |
 | **fx-freeze** | the FX section's 2-way switch as freeze: loops the delay, or holds the reverb | [fx-freeze/README.md](fx-freeze/README.md) |
 | **eight-lanes** | four more sequencer tracks, 5-8, on a second page (SHIFT + PATTERN), sending MIDI only | [eight-lanes/README.md](eight-lanes/README.md) |
