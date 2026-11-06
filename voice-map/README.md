@@ -2,7 +2,7 @@
 
 Run any of the Pērkons' four voice engines on any of its four voices (four sample
 voices, two kicks and two snares, whatever you like), plus engines other mods add, such
-as the [voice-zibens](../voice-zibens/) synth voice. Choose the layout per
+as the [voice-zibens](../voice-zibens/) and [voice-akords](../voice-akords/) synth voices. Choose the layout per
 kit, on the unit.
 
 Based on official Pērkons firmware **1.3.0**. Unofficial; not affiliated with Erica Synths.
