@@ -39,6 +39,11 @@ Engines from other mods take the next columns. The ALGO and MODE switches, knobs
 input, output jack, filter and drive of each voice work as usual; only the sound engine
 behind them changes.
 
+**Engine settings**: an engine with settings of its own (such as
+[voice-akords](../voice-akords/)) opens its settings page for a voice when you **hold
+that voice's step** of the engine for half a second (holding a dim step chooses the
+engine and opens it). The engine's README describes its page.
+
 * A kit you haven't changed plays the stock engines: voice 1 on engine 1, and so on.
 * **Saving a kit** (KIT page: REC + step) saves its engines with it; **loading a kit**
   (including kit-link on a pattern change, and bank loads) brings them back.
