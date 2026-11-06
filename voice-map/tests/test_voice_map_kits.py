@@ -96,6 +96,18 @@ class TestEnginePage(unittest.TestCase):
         self.assertEqual(played, [(2, 1), (2, 0)], 'voice 3 played, as on the config page')
         self.assertEqual(r.mode(), ENGINES_PAGE)
 
+    def test_the_panel_switches_work_on_the_page(self):
+        from perkons.rig import EVT
+        r = self.rig()
+        self.open_page(r)
+        vs = r.voice_state(1)
+        for which, pos in ((0, 2), (1, 1), (2, 2)):             # ALGO, MODE, filter: switch events
+            r.e.uc.mem_write(EVT, bytes([3 + which, 0x15]) + struct.pack('<H', pos) + bytes(4))
+            r.e.call(r.key_handler, EVT, max_insns=50_000_000)
+        self.assertEqual([struct.unpack('<H', bytes(r.e.uc.mem_read(vs + 0x50 + 2 * s, 2)))[0] for s in (8, 9)],
+                         [2, 1], 'voice 2 ALGO / MODE')
+        self.assertEqual(r.mode(), ENGINES_PAGE)
+
     def test_leaving_keeps_it_in_the_kit(self):
         r = self.rig()
         self.open_page(r)
