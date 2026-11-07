@@ -38,6 +38,13 @@ static unsigned engine_of(uint16_t map, int v)
     return map >> (4 * v) & 0xfu;
 }
 
+/* for other engine mods' M4 code (pk_vm.h): the engine voice v runs now (0-3 the stock
+ * engines, 4- the extra engines: slot - 1), or -1 */
+int pk_vm_engine(int v)
+{
+    return v >= 0 && v < 4 ? (int)engine_of(cur, v) : -1;
+}
+
 static void send(uint16_t map)
 {
     uint8_t m[4];
