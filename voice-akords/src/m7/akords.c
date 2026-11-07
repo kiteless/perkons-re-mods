@@ -27,7 +27,13 @@
  * When ALGO gives PARAM2 another job, the value keeps its setting until the knob moves.
  * The PLAY knobs are relative to the preset: 12 o'clock is the preset's own value. A
  * preset pressed on the page brings back all its own values (and filter) until the knobs
- * move. */
+ * move.
+ *
+ * Message "akords-sound" sets the same values from a saved kit: the four PLAY values, what
+ * PARAM2 sets, which knobs follow already, and whether the filter is the preset's own. While
+ * the sequencer plays, the kit's knob and switch positions only reach this core with the
+ * track's next note, so the M4 first sends it marked SOUND_HOLD: the positions set nothing
+ * (nor MODE the filter) until it sends it again unmarked, once they've arrived. */
 #include <stdint.h>
 #include "fw_m7.h"
 
@@ -262,6 +268,7 @@ typedef struct {
     uint32_t rng;                       /* the notes' detune (a new one each chord) */
     float dgain, dgain_t;               /* the level for DRIVE: now (smoothed), target */
     int32_t prog;                       /* the progression offset of the newest chord */
+    int32_t hold;                       /* SOUND_HOLD: the knobs set nothing yet */
 } ak_t;
 
 _Static_assert(__builtin_offsetof(ak_t, algo) == OFF_cVoice_algo, "algo");
@@ -388,7 +395,17 @@ static inline float knob(const ak_t *a, int k)
 /* each output's settings from the M4: preset, chord type, scale, root (VOICE RAM, kept
  * across voice-map rebuilding the arena) */
 static uint8_t settings[4][4];
-static uint8_t preset_pressed[4];       /* the page pressed a preset for this output */
+/* what's waiting for this output's engine: a preset pressed on the page, a kit's sound
+ * (with what's in the message's own bits, below) */
+#define WAIT_PRESSED    0x80
+#define WAIT_SOUND      0x40
+#define SOUND_HOLD      0x20        /* the kit's positions haven't arrived: they set nothing */
+#define SOUND_OWN       0x10        /* the preset's own filter (not yet MODE's) */
+#define SOUND_ARM2      0x08        /* PARAM2 follows the knob */
+#define SOUND_ARM1      0x04        /* PARAM1 follows the knob */
+#define SOUND_ROLE      0x03        /* what PARAM2 sets: V_RES, V_ENV, V_ATTACK */
+static uint8_t waiting[4];
+static uint8_t sound[4][NVAL];          /* a kit's PLAY values, 0-255 */
 static const uint8_t LIMIT[4] = {NPRESET, NCHORD, NSCALE, NROOT};
 
 /* each output's DRIVE from the M4 (0-255; message "akords-drive", sent when it changes) */
@@ -430,7 +447,20 @@ void pk_ak_on_settings(const uint8_t *buf, uint32_t len)
     if (len > 16)
         for (int v = 0; v < 4; v++)
             if (buf[16] & (1u << v))
-                preset_pressed[v] = 1;
+                waiting[v] |= WAIT_PRESSED;
+}
+
+/* 4 x [flags, cutoff, resonance, env amount, attack]: the outputs with WAIT_SOUND take it */
+void pk_ak_on_sound(const uint8_t *buf, uint32_t len)
+{
+    if (len < 20)
+        return;
+    for (int v = 0; v < 4; v++, buf += 5)
+        if (buf[0] & WAIT_SOUND) {
+            waiting[v] = (uint8_t)((waiting[v] & WAIT_PRESSED) | buf[0]);
+            for (int i = 0; i < NVAL; i++)
+                sound[v][i] = buf[1 + i];
+        }
 }
 
 /* ---- control ----------------------------------------------------------------------------- */
@@ -498,6 +528,8 @@ static void track_filter(ak_t *a)
         a->mode_ref = a->mode;
         a->fsel = -1;
     }
+    if (a->hold && a->fsel < 0)         /* a kit's own filter: its MODE is still arriving */
+        a->mode_ref = a->mode;
     if (a->fsel >= 0 || a->mode != a->mode_ref)
         a->fsel = mode_filter(a->mode);
 }
@@ -506,18 +538,38 @@ static void read_knobs(ak_t *a)
 {
     for (int i = 0; i < 4; i++)
         a->set[i] = settings[a->out & 3][i];
-    if (preset_pressed[a->out & 3]) {   /* a preset pressed: all its own values, its own */
-        preset_pressed[a->out & 3] = 0; /* filter; each knob takes over when it moves */
-        for (int i = 0; i < NVAL; i++)
+    uint8_t w = waiting[a->out & 3];
+    waiting[a->out & 3] = 0;
+    if (w & WAIT_PRESSED) {             /* a preset pressed: all its own values, its own */
+        for (int i = 0; i < NVAL; i++)  /* filter; each knob takes over when it moves */
             a->val[i] = 0.5f;
         for (int k = 0; k < 2; k++) {
             a->armed[k] = 0;
             a->ref[k] = knob(a, 2 + k);
         }
         a->preset_ref = 0xff;           /* track_filter: the preset's filter, MODE now */
+        a->hold = 0;
+    }
+    if (w & WAIT_SOUND) {               /* a kit's sound (after a press sent before it) */
+        for (int i = 0; i < NVAL; i++)
+            a->val[i] = (float)sound[a->out & 3][i] * (1.0f / 255.0f);
+        a->role[0] = V_CUTOFF;
+        a->role[1] = w & SOUND_ROLE;
+        a->armed[0] = (w & SOUND_ARM1) != 0;
+        a->armed[1] = (w & SOUND_ARM2) != 0;
+        a->fsel = w & SOUND_OWN ? -1 : mode_filter(a->mode);
+        a->preset_ref = a->set[0];
+        a->mode_ref = a->mode;
+        a->ref[0] = knob(a, 2);
+        a->ref[1] = knob(a, 3);
+        a->hold = (w & SOUND_HOLD) != 0;
     }
     for (int k = 0; k < 2; k++) {
         float x = knob(a, 2 + k);
+        if (a->hold) {
+            a->ref[k] = x;
+            continue;
+        }
         int r = role_of(a, k);
         if (r != a->role[k]) {          /* a new job: keep the value until the knob moves */
             a->armed[k] = a->role[k] < 0;   /* (just built: the knobs are the settings) */
@@ -1045,7 +1097,10 @@ static void init(cVoice *v)
     a->tune_since = -1;
     a->prog = 0;
     a->rng = 0x2545f491u + a->out;
+    uint8_t w = waiting[a->out & 3];    /* for after init: voice-map calls it twice on a rebuild */
+    waiting[a->out & 3] = 0;
     read_knobs(a);
+    waiting[a->out & 3] = w;
     a->dgain = a->dgain_t;
 }
 
