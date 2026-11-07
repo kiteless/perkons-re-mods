@@ -1,11 +1,20 @@
 /* Akords, M4 side: each kit's Akords settings and the settings page.
  *
  * Every voice has five settings: preset, chord type, scale, root and progression. They're
- * kept with the kit (the M4 host's kit sidecar, KITS/PP.KIX, record AKRD: 4 x 5 bytes; an
- * older 4 x 4 one, without progressions and with 14 chord types, is read too); a kit
- * without one has all at 0. Loading a kit, and every change on the page, sends all four
- * voices' settings to the M7 in order with the triggers (message "akords"), so the next
- * chord plays them.
+ * kept with the kit (the M4 host's kit sidecar, KITS/PP.KIX, record AKRD: 4 x 9 bytes,
+ * below; older 4 x 5 and 4 x 4 ones, the latter without progressions and with 14 chord
+ * types, are read too); a kit without one has all at 0. Loading a kit, and every change on
+ * the page, sends all four voices' settings to the M7 in order with the triggers (message
+ * "akords"), so the next chord plays them.
+ *
+ * The sound: a kit keeps the knob and switch positions, but the values the voice plays
+ * aren't all on them. PARAM2 sets three values, and keeps the two ALGO isn't on; a preset
+ * press gives the preset's values until a knob moves; the filter is the preset's own until
+ * MODE moves. The M7 can't send anything back, so this core follows the same rules on the
+ * knobs' own positions (no locks) and saves the values with the kit. Loading a kit sends
+ * them (message "akords-sound"), held until the kit's positions have reached the M7: while
+ * the sequencer plays, the firmware only applies them at the track's next note. A voice saved without Akords, or in a kit from before
+ * they were saved, plays its knobs, with the preset's values for the rest.
  *
  * Progressions: each voice's chord moves through its progression once per cycle of its
  * track (back on the track's first step), from the first chord when the sequencer starts,
@@ -24,6 +33,8 @@
 #include <stdint.h>
 #include "pk_host.h"
 #include "fw_m4_seq.h"
+#include "pk_vm.h"                  /* pk_vm_engine */
+#include "pk_ak_engine.h"           /* PK_AK_ENGINE: Akords' engine number */
 
 #define NKITS           64
 #define NSET            5           /* preset, chord type, scale, root, progression */
@@ -50,8 +61,47 @@ static const int8_t PROGRESSION[NPROG][4] = {
 
 extern uint8_t pk_vm_settings_voice;
 
-#define PACKED          3           /* a voice's settings packed: 4 + 4 + 4 + 4 + 3 bits */
-PK_AXI static uint8_t kit_set[NKITS][4][PACKED];        /* each kit's settings, per voice */
+/* a voice's values the knobs set, as on the M7 (0-255; 128: 12 o'clock, the preset's own).
+ * The cutoff isn't kept: PARAM1 has no other job, so it's on its knob or the preset's. */
+enum { V_CUTOFF, V_RES, V_ENV, V_ATTACK, NVAL };
+#define NKEPT           3           /* resonance, env amount, attack */
+#define VAL_OWN         128
+#define MOVED           82          /* knob travel (0-4095, 2%), as the M7's */
+#define POS1            1           /* the switch values of panel positions 1, 3 */
+#define POS3            2
+/* a kit's table entry, and the record's flags byte */
+#define KEPT            0x08        /* the values below are kept */
+#define KEPT_MODE       0x10        /* the filter is MODE's, not the preset's own */
+#define KEPT_CUT_OWN    0x20        /* the cutoff is the preset's, not PARAM1's */
+#define KEPT_FLAGS      (KEPT | KEPT_MODE | KEPT_CUT_OWN)
+/* the message's flags (the M7's) */
+#define SOUND_APPLY     0x40
+#define SOUND_HOLD      0x20
+#define SOUND_OWN       0x10
+#define SOUND_ARM2      0x08
+#define SOUND_ARM1      0x04
+
+typedef struct {
+    uint32_t ref1 : 12;             /* the knobs when they got their jobs (0-4095) */
+    uint32_t ref2 : 12;
+    uint32_t role : 2;              /* what PARAM2 sets */
+    uint32_t armed : 2;             /* bits: this knob follows (1 PARAM1, 2 PARAM2) */
+    uint32_t own : 1;               /* the filter is the preset's own */
+    uint32_t kept : 1;              /* the values come from a kit, or it's run Akords */
+    uint32_t running : 1;           /* it ran Akords at the last look */
+    uint8_t mode_ref;               /* MODE when the preset was chosen */
+    uint8_t val[NKEPT];
+} sound_t;
+
+#define PACKED          (3 + NKEPT) /* a voice packed: 4 + 4 + 4 + 4 + 3 bits, the flags, the values */
+#define RECORD          (NSET + 1 + NKEPT)      /* a voice in the record */
+PK_AXI static uint8_t kit_set[NKITS][4][PACKED];        /* each kit's settings and sound, per voice */
+PK_AXI static sound_t snd[4];                   /* the sound playing */
+/* a kit loaded: the M7 holds its sound until the positions arrive (ms, low 16 bits) */
+#define HOLD_SETTLED_MS 20          /* the playing values have matched the kit's this long */
+#define HOLD_MAX_MS     2000        /* or this long (locks or an LFO keep them apart) */
+PK_AXI static uint16_t hold_from, hold_matched;
+PK_AXI static uint8_t holding;
 PK_AXI static uint8_t cur[4][NSET];             /* the settings playing */
 PK_AXI static uint8_t editing;                  /* the voice the page edits */
 
@@ -76,36 +126,176 @@ static int current_kit(void)
     return *(volatile uint16_t *)(uintptr_t)SYM_current_kit;
 }
 
-/* a kit's table entry: preset | chord << 4, scale | root << 4, progression */
-static void pack(uint8_t to[4][PACKED], const uint8_t from[4][NSET])
+/* a kit's table entry: preset | chord << 4, scale | root << 4, progression | flags, values */
+static void pack_settings(uint8_t to[PACKED], const uint8_t from[NSET], uint8_t flags, const uint8_t val[NKEPT])
 {
-    for (int v = 0; v < 4; v++) {
-        to[v][0] = (uint8_t)(from[v][0] | from[v][1] << 4);
-        to[v][1] = (uint8_t)(from[v][2] | from[v][3] << 4);
-        to[v][2] = from[v][4];
-    }
+    to[0] = (uint8_t)(from[0] | from[1] << 4);
+    to[1] = (uint8_t)(from[2] | from[3] << 4);
+    to[2] = (uint8_t)(from[4] | flags);
+    for (int i = 0; i < NKEPT; i++)
+        to[3 + i] = val[i];
 }
 
-static void unpack(uint8_t to[4][NSET], const uint8_t from[4][PACKED])
+static void unpack_settings(uint8_t to[NSET], const uint8_t from[PACKED])
 {
-    for (int v = 0; v < 4; v++) {
-        to[v][0] = from[v][0] & 15;
-        to[v][1] = from[v][0] >> 4;
-        to[v][2] = from[v][1] & 15;
-        to[v][3] = from[v][1] >> 4;
-        to[v][4] = from[v][2];
-    }
+    to[0] = from[0] & 15;
+    to[1] = from[0] >> 4;
+    to[2] = from[1] & 15;
+    to[3] = from[1] >> 4;
+    to[4] = from[2] & 7;
 }
 
+/* the settings (a knob turned alone doesn't write the card on leaving the page) */
 static int same(const uint8_t a[4][PACKED], const uint8_t b[4][NSET])
 {
-    uint8_t p[4][PACKED];
-    pack(p, b);
-    for (int v = 0; v < 4; v++)
-        for (int i = 0; i < PACKED; i++)
-            if (a[v][i] != p[v][i])
+    for (int v = 0; v < 4; v++) {
+        uint8_t s[NSET];
+        unpack_settings(s, a[v]);
+        for (int i = 0; i < NSET; i++)
+            if (s[i] != b[v][i])
                 return 0;
+    }
     return 1;
+}
+
+/* ---- the sound ------------------------------------------------------------------------ */
+
+static uint32_t base12(int v, int slot)
+{
+    return FW_U16(fw_voice_state(v) + FW_VS_BASE + 2 * slot) >> 4;
+}
+
+/* what PARAM2 sets, for ALGO's position */
+static uint8_t role_now(int v)
+{
+    int algo = FW_U16(fw_voice_state(v) + FW_VS_BASE + 2 * FW_SLOT_ALGO);
+    return algo == POS1 ? V_RES : (algo == POS3 ? V_ATTACK : V_ENV);
+}
+
+static uint8_t mode_now(int v)
+{
+    return (uint8_t)FW_U16(fw_voice_state(v) + FW_VS_BASE + 2 * FW_SLOT_MODE);
+}
+
+static uint8_t to_val(uint32_t x)
+{
+    return (uint8_t)((x * 255u + 2047u) / 4095u);
+}
+
+/* the knobs of a voice running Akords, by the M7's rules */
+static void sound_follow(int v)
+{
+    sound_t *s = &snd[v];
+    int x1 = (int)base12(v, FW_SLOT_PARAM1), x2 = (int)base12(v, FW_SLOT_PARAM2);
+    uint8_t r = role_now(v);
+    if (r != s->role) {                 /* a new job: keep the value until the knob moves */
+        s->role = r;
+        s->armed &= 1;
+        s->ref2 = (uint32_t)x2;
+    }
+    int d1 = x1 - (int)s->ref1, d2 = x2 - (int)s->ref2;
+    if (d1 > MOVED || d1 < -MOVED)
+        s->armed |= 1;
+    if (d2 > MOVED || d2 < -MOVED)
+        s->armed |= 2;
+    if (s->armed & 2)
+        s->val[s->role - V_RES] = to_val((uint32_t)x2);
+    if (mode_now(v) != s->mode_ref)
+        s->own = 0;
+}
+
+/* a kit's or a fresh voice's values take over, the knobs where they are now */
+static void sound_set(int v, const uint8_t *e)
+{
+    sound_t *s = &snd[v];
+    s->role = role_now(v);
+    s->mode_ref = mode_now(v);
+    s->ref1 = base12(v, FW_SLOT_PARAM1);
+    s->ref2 = base12(v, FW_SLOT_PARAM2);
+    s->kept = e && e[2] & KEPT;
+    s->own = !(s->kept && e[2] & KEPT_MODE);
+    for (int i = 0; i < NKEPT; i++)
+        s->val[i] = s->kept ? e[3 + i] : VAL_OWN;
+    if (!s->kept) {                     /* no values: the knobs are the settings */
+        s->armed = 3;
+        sound_follow(v);
+    } else {                            /* a value on its knob just follows it */
+        int d = (int)to_val(s->ref2) - (int)s->val[s->role - V_RES];
+        s->armed = (e[2] & KEPT_CUT_OWN ? 0 : 1) | (d >= -1 && d <= 1 ? 2 : 0);
+    }
+}
+
+/* the voices (bits) to the M7 */
+static void sound_send(uint8_t voices, uint8_t hold)
+{
+    uint8_t msg[4 * (1 + NVAL)];
+    for (int v = 0; v < 4; v++) {
+        const sound_t *s = &snd[v];
+        msg[v * 5] = voices >> v & 1 ? (uint8_t)(SOUND_APPLY | hold | s->role | (s->own ? SOUND_OWN : 0)
+                                                 | (s->armed & 1 ? SOUND_ARM1 : 0)
+                                                 | (s->armed & 2 ? SOUND_ARM2 : 0)) : 0;
+        msg[v * 5 + 1] = s->armed & 1 ? to_val(base12(v, FW_SLOT_PARAM1)) : VAL_OWN;
+        for (int i = 0; i < NKEPT; i++)
+            msg[v * 5 + 2 + i] = s->val[i];
+    }
+    pk_send_m7(PK_STREAM_AKORDS_SOUND, PK_MSG_AKORDS_SOUND, msg, sizeof msg);
+}
+
+/* the voice's playing values are the kit's */
+static int arrived(int v)
+{
+    static const uint8_t SLOTS[4] = {FW_SLOT_PARAM1, FW_SLOT_PARAM2, FW_SLOT_ALGO, FW_SLOT_MODE};
+    const uint8_t *vs = fw_voice_state(v);
+    for (int i = 0; i < 4; i++)
+        if (FW_U16(vs + FW_VS_VALUE + 2 * SLOTS[i]) != FW_U16(vs + FW_VS_BASE + 2 * SLOTS[i]))
+            return 0;
+    return 1;
+}
+
+/* the M7 holding a kit's sound: let it go once the positions have arrived */
+static void hold_poll(void)
+{
+    uint16_t now = (uint16_t)fw_get_tick();
+    for (int v = 0; v < 4; v++)
+        if (snd[v].running && !arrived(v))
+            hold_matched = now;
+    if ((uint16_t)(now - hold_matched) >= HOLD_SETTLED_MS || (uint16_t)(now - hold_from) >= HOLD_MAX_MS) {
+        holding = 0;
+        sound_send(15, 0);
+    }
+}
+
+/* each voice running Akords follows its knobs; one that has just started running it gets
+ * its values again (voice-map builds a new engine at the next note) */
+static void sound_poll(void)
+{
+    uint8_t started = 0;
+    for (int v = 0; v < 4; v++) {
+        sound_t *s = &snd[v];
+        int on = pk_vm_engine(v) == PK_AK_ENGINE;
+        if (on && !s->running) {
+            if (!s->kept) {
+                sound_set(v, 0);
+                s->kept = 1;
+            }
+            started |= (uint8_t)(1u << v);
+        } else if (on) {
+            sound_follow(v);
+        }
+        s->running = (uint8_t)on;
+    }
+    if (started)
+        sound_send(started, 0);
+    if (holding)
+        hold_poll();
+}
+
+/* a preset pressed: all its own values, its own filter; each knob takes over when it moves */
+static void sound_preset(int v)
+{
+    uint8_t e[PACKED] = {0, 0, KEPT, VAL_OWN, VAL_OWN, VAL_OWN};
+    sound_set(v, e);
+    snd[v].armed = 0;
 }
 
 
@@ -117,25 +307,41 @@ void pk_ak_kit_load(int kit)
     PK_NEXT(pk_ak_kit_load)(kit);
     if (kit < 0 || kit >= NKITS)
         return;
-    unpack(cur, kit_set[kit]);
+    for (int v = 0; v < 4; v++) {
+        unpack_settings(cur[v], kit_set[kit][v]);
+        sound_set(v, kit_set[kit][v]);
+    }
     send(0);
+    holding = 1;
+    hold_from = hold_matched = (uint16_t)fw_get_tick();
+    sound_send(15, SOUND_HOLD);
 }
 
-/* the host's kit sidecar, record "AKRD": [voice][preset, chord, scale, root, progression];
- * none = all 0 */
+/* the host's kit sidecar, record "AKRD": [voice][preset, chord, scale, root, progression,
+ * flags, resonance, env amount, attack]; none = all 0. A voice not running Akords
+ * keeps its settings but no sound. */
 uint32_t pk_ak_kit_save(int bank, int kit, uint8_t *buf, uint32_t max)
 {
     (void)bank;
-    pack(kit_set[kit], cur);
-    uint32_t n = 4 * NSET, any = 0;
-    if (max < n)
-        return 0;
-    for (int v = 0; v < 4; v++)
-        for (int i = 0; i < NSET; i++) {
-            buf[v * NSET + i] = cur[v][i];
-            any |= cur[v][i];
+    static const uint8_t none[NKEPT];
+    uint32_t n = 4 * RECORD, any = 0;
+    sound_poll();
+    for (int v = 0; v < 4; v++) {
+        const sound_t *s = &snd[v];
+        uint8_t flags = s->running ? (uint8_t)(KEPT | (s->own ? 0 : KEPT_MODE)
+                                               | (s->armed & 1 ? 0 : KEPT_CUT_OWN)) : 0;
+        const uint8_t *val = s->running ? s->val : none;
+        pack_settings(kit_set[kit][v], cur[v], flags, val);
+        if (max >= n) {
+            uint8_t *r = buf + v * RECORD;
+            for (int i = 0; i < NSET; i++)
+                any |= r[i] = cur[v][i];
+            any |= r[NSET] = flags;
+            for (int i = 0; i < NKEPT; i++)
+                r[NSET + 1 + i] = val[i];
         }
-    return any ? n : 0;
+    }
+    return max >= n && any ? n : 0;
 }
 
 /* the 14 chord types of a 4 x 4 record: Minor 7 and Sus2 (plain, smooth) are gone; they
@@ -145,16 +351,20 @@ static const uint8_t OLD_CHORD[14] = {0, 1, 2, 3, 4, 5, 2, 3, 0, 1, 6, 7, 8, 9};
 void pk_ak_kit_restore(int bank, int kit, const uint8_t *rec, uint32_t len)
 {
     (void)bank;
-    int n = len == 4 * NSET ? NSET : (len == 4 * 4 ? 4 : 0);
-    uint8_t set[4][NSET];
-    for (int v = 0; v < 4; v++)
+    int n = len == 4 * RECORD ? RECORD : (len == 4 * NSET ? NSET : (len == 4 * 4 ? 4 : 0));
+    static const uint8_t none[NKEPT];
+    for (int v = 0; v < 4; v++) {
+        uint8_t set[NSET];
         for (int i = 0; i < NSET; i++) {
             uint8_t x = i < n ? rec[v * n + i] : 0;
             if (n == 4 && i == 1)
                 x = x < 14 ? OLD_CHORD[x] : 0;
-            set[v][i] = x < NPOS[i] ? x : 0;
+            set[i] = x < NPOS[i] ? x : 0;
         }
-    pack(kit_set[kit], set);
+        const uint8_t *r = rec + v * RECORD;
+        uint8_t flags = n == RECORD && r[NSET] & KEPT ? r[NSET] & KEPT_FLAGS : 0;
+        pack_settings(kit_set[kit][v], set, flags, flags ? r + NSET + 1 : none);
+    }
 }
 
 /* ---- DRIVE ---------------------------------------------------------------------------- */
@@ -166,7 +376,7 @@ void pk_ak_kit_restore(int bank, int kit, const uint8_t *rec, uint32_t len)
 #define DRIVE_EVERY_MS  5
 #define DRIVE_RESEND_MS 250
 PK_AXI static uint8_t drive_sent[4];    /* 0 at boot, as the M7's */
-PK_AXI static uint32_t drive_checked, drive_at;     /* ms: the last check, the last send */
+PK_AXI static uint16_t drive_checked, drive_at;     /* ms, low 16 bits: the last check, the last send */
 
 void PK_NEXT(pk_ak_main_loop)(void);
 
@@ -174,17 +384,18 @@ void pk_ak_main_loop(void)
 {
     PK_NEXT(pk_ak_main_loop)();
     prog_stopped();
-    uint32_t now_ms = fw_get_tick();
-    if (now_ms - drive_checked < DRIVE_EVERY_MS)
+    uint16_t now_ms = (uint16_t)fw_get_tick();
+    if ((uint16_t)(now_ms - drive_checked) < DRIVE_EVERY_MS)
         return;
     drive_checked = now_ms;
+    sound_poll();
     uint8_t now[4];
     int changed = 0;
     for (int v = 0; v < 4; v++) {
         now[v] = (uint8_t)(FW_U16(fw_voice_state(v) + FW_VS_VALUE + 2 * FW_SLOT_DRIVE) >> 8);
         changed |= now[v] != drive_sent[v];
     }
-    if (changed || now_ms - drive_at >= DRIVE_RESEND_MS) {
+    if (changed || (uint16_t)(now_ms - drive_at) >= DRIVE_RESEND_MS) {
         drive_at = now_ms;
         for (int v = 0; v < 4; v++)
             drive_sent[v] = now[v];
@@ -284,6 +495,7 @@ int pk_ak_page_key(const uint8_t *evt)
             return 1;
         if (row == 0) {                 /* a preset, even the one chosen: all its sound */
             cur[editing][0] = (uint8_t)col;
+            sound_preset(editing);
             send((uint8_t)(1u << editing));
         } else if (row == 1 && col >= NCHORD) {         /* off, or a progression */
             if (cur[editing][PROG] != col - NCHORD) {
@@ -327,8 +539,6 @@ void pk_ak_page_draw(void)
 void pk_ak_page_leave(void)
 {
     int bank = FW_U8(SYM_bank_number), kit = current_kit();
-    if (kit >= 0 && kit < NKITS && !same(kit_set[kit], cur)) {
-        pack(kit_set[kit], cur);
+    if (kit >= 0 && kit < NKITS && !same(kit_set[kit], cur))
         pk_store_save_kit(bank, kit);
-    }
 }

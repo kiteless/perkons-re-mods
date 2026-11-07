@@ -88,8 +88,9 @@ Each row is one setting; bright is the one chosen.
 
 * The trigger keys play the voices, so you can hear changes as you make them.
 * **SHIFT**, **KIT** or **MOD** go back to the engine page.
-* **The settings are kept with the kit**: leaving the page after a change saves them to the
-  card straight away, as does saving the kit. They're in `BANKS/NN/KITS/PP.KIX`.
+* **The settings are kept with the kit**: leaving the page after a change saves them, and the
+  sound as it is then, to the card straight away, as does saving the kit. They're in
+  `BANKS/NN/KITS/PP.KIX`.
 
 ### Presets (row 1)
 
@@ -193,11 +194,13 @@ overdoing it.
 * Sequenced DECAY values give per-step gate lengths.
 * Parameter locks and MIDI CCs on PARAM2 change whatever ALGO gives it when they play.
 
-## Limits
+## Saved with the kit
 
-Beyond the settings page, a kit keeps the knob and switch positions, so:
+Saving a kit keeps the sound you made, on top of the settings page:
 
-* The two PARAM2 settings ALGO isn't pointing at aren't kept.
-* A filter chosen with MODE can come back as the preset's own.
-* After a preset press, a knob you haven't moved since comes back at its saved position, not
-  the preset's value.
+* All three PARAM2 values, not only the one ALGO is on.
+* The filter: the preset's own, or the one chosen with MODE.
+* The preset's values after a preset press, for any knob you haven't moved since.
+
+A kit saved with an earlier version of Akords plays from its knob positions, as it did before,
+until you save it again.

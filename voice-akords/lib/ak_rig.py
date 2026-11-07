@@ -21,7 +21,7 @@ POS1, POS2, POS3 = 1, 0, 2          # switch values for panel positions 1, 2, 3
 LP24, HP, FORMANT = POS1, POS2, POS3    # MODE: the filter
 PLAY = POS1                         # the MODE the tests play in (the presets' own filter)
 DRONE = 4095
-MSG_AKORDS, MSG_AKORDS_DRIVE, MSG_AKORDS_PROG, MSG_VOICE_MAP = 4, 5, 6, 7    # the M7 host's message types, in name order
+MSG_AKORDS, MSG_AKORDS_DRIVE, MSG_AKORDS_PROG, MSG_AKORDS_SOUND, MSG_VOICE_MAP = 4, 5, 6, 7, 8    # the M7 host's message types, in name order
 
 PRESETS = ['Bass', 'Pad', 'Lead', 'Keys', 'Pluck', 'Stab', 'Hollow', 'Reese', 'Organ', 'Bell', 'Air',
            'Choir', 'Vox', 'Talk']
