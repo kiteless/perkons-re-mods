@@ -2,7 +2,7 @@
 
 Run any of the Pērkons' four voice engines on any of its four voices (four sample
 voices, two kicks and two snares, whatever you like), plus engines other mods add, such
-as the [voice-zibens](../voice-zibens/) and [voice-akords](../voice-akords/) synth voices. Choose the layout per
+as the [voice-zibens](../voice-zibens/) and [voice-akords](../voice-akords/) synth voices or the [voice-step-sampler](../voice-step-sampler/) sample voice. Choose the layout per
 kit, on the unit.
 
 Based on official Pērkons firmware **1.3.0**. Unofficial; not affiliated with Erica Synths.
@@ -33,9 +33,9 @@ Each **kit** remembers which engine each of its four voices runs.
 | 2 | stock voice 2's engine | Fold Drum 2 / Wavetable / Complex |
 | 3 | stock voice 3's engine | Resonant drums / Slap / Karplus–Chord |
 | 4 | stock voice 4's engine | Noise hat / Noise–tone / Acoustic hats (samples) |
-| 5 | the [voice-zibens](../voice-zibens/) synth voice (builds that include it) | scale: minor pentatonic / Dorian / Phrygian |
+| 5-16 | the custom engines your build includes, such as [voice-zibens](../voice-zibens/), [voice-akords](../voice-akords/) and [voice-step-sampler](../voice-step-sampler/), each in the slot you installed it in | see each engine's page |
 
-Engines from other mods take the next columns. The ALGO and MODE switches, knobs, trigger
+The Mod Matrix gives each custom engine the slot of its place in TO BE INSTALLED, from 5. The ALGO and MODE switches, knobs, trigger
 input, output jack, filter and drive of each voice work as usual; only the sound engine
 behind them changes.
 

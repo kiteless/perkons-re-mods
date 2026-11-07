@@ -1,0 +1,22 @@
+{
+  "_comment": "voice-step-sampler: this mod's hook sites (the firmware facts they name are in the framework's symbols/v1.3.0-m4.json); loaded with them by perkons.mods",
+  "sites": {
+    "send_triggers.call_ipc_send": {
+      "addr": "0x08101ca8",
+      "call": "ipc_send",
+      "_note": "send_triggers: the four voices' trigger records to the M7 (stream 2, 16 B), sent only when the set of triggered voices changes"
+    },
+    "seq_tick.tail_send_triggers": {
+      "addr": "0x08101e28",
+      "call": "send_triggers",
+      "branch": true,
+      "_note": "the sequencer tick ends in b.w send_triggers"
+    },
+    "send_triggers_thunk.tail": {
+      "addr": "0x08102ad0",
+      "call": "send_triggers",
+      "branch": true,
+      "_note": "a function that is just b.w send_triggers (the other way hits go out at once)"
+    }
+  }
+}

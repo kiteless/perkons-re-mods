@@ -1,0 +1,17 @@
+{
+  "options": [
+    {
+      "id": "voice-step-sampler",
+      "title": "STEP SAMPLER",
+      "summary": "64 SAMPLES PER BANK, ANY LENGTH, STREAMED FROM THE CARD; EACH STEP ITS OWN (STEP + SHUFFLE). TOP SWITCH: PARAM2 = ATTACK, START OR SLICE. BOTTOM: FORWARD, CHOKE OR REVERSE.",
+      "patches": [
+        "voice_step_sampler"
+      ],
+      "code": "ss",
+      "requires": [
+        "voice-map"
+      ],
+      "kind": "voice"
+    }
+  ]
+}
