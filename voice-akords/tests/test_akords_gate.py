@@ -19,11 +19,12 @@ class TestAkordsGate(AkordsCase):
         self.assertEqual([s['stage'] for s in self.info(e)['slots']], [0])
 
     def test_gate_range(self):
-        def half_time(decay):                   # Organ: when it falls to half its level
-            r = rms(self.play(self.machine(preset=8), 2048, decay=decay, n=144000), 480)
+        def half_time(decay, n):                # Organ: when it falls to half its level (in n samples)
+            r = rms(self.play(self.machine(preset=8), 2048, decay=decay, n=n), 480)
             return next(i for i, v in enumerate(r) if i > 5 and v < 0.5 * max(r)) * 0.01
-        self.assertLess(half_time(0), 0.15)                          # ~0.05 s + release
-        self.assertTrue(1.7 < half_time(3808) < 2.1, half_time(3808))  # ~1.85 s at 93%
+        self.assertLess(half_time(0, 24000), 0.15)                   # ~0.05 s + release
+        t = half_time(3808, 110400)                                  # (rendered to 2.3 s)
+        self.assertTrue(1.7 < t < 2.1, t)                            # ~1.85 s at 93%
 
     def test_decay_acts_on_the_sounding_chords(self):
         """As on voice-zibens, DECAY acts on what is sounding: turned down from drone, the

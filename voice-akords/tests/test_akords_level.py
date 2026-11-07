@@ -22,16 +22,16 @@ class TestAkordsLevel(AkordsCase):
         peaks = []
         for p in range(len(PRESETS)):
             e = self.machine(preset=p)
-            peaks.append(max(map(abs, self.play(e, 2048, n=72000))))
+            peaks.append(self.peak(e, 2048))
         self.assertLess(max(peaks) / min(peaks), 1.6, dict(zip(PRESETS, peaks)))
 
     def test_formant_peaks_like_the_presets(self):
         peaks = []
         for p in (0, 1, 8, 10):
             e = self.machine(preset=p)
-            ref = max(map(abs, self.play(self.machine(preset=p), 2048, n=72000)))
+            ref = self.peak(self.machine(preset=p), 2048)
             self.state(e, e.knobs, POS2, FORMANT)
-            peaks.append(max(map(abs, self.play(e, 2048, n=72000))) / ref)
+            peaks.append(self.peak(e, 2048) / ref)
         self.assertTrue(all(0.5 < r < 2.0 for r in peaks), dict(zip(('Bass', 'Pad', 'Organ', 'Air'), peaks)))
 
     def test_mute_fades_like_a_stock_slot(self):

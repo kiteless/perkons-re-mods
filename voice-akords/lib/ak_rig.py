@@ -174,6 +174,18 @@ class AkordsCase(unittest.TestCase):
             e.send_triggers([o == e.out for o in range(4)], am, vel, note)
         return e.audio(n)[e.out]
 
+    def peak(self, e, tune, cap=72000, chunk=2400, settled=4):
+        """The peak of a held chord: played until its level has stopped rising (`settled`
+        chunks in a row below the peak so far) or `cap` samples, so a slow attack (Pad) gets
+        its whole rise and the fast ones stop early."""
+        x = self.play(e, tune, n=chunk)
+        best, quiet, n = max(map(abs, x)), 0, chunk
+        while n < cap and quiet < settled:
+            m = max(map(abs, e.audio(chunk)[e.out]))
+            quiet = quiet + 1 if m <= best else 0
+            best, n = max(best, m), n + chunk
+        return best
+
     def info(self, e):
         """The settings, the last chord and the chord slot (notes: up to 5; unused -1)."""
         o = e.slot(e.out)

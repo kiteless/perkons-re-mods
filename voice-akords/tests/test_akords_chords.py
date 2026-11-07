@@ -89,7 +89,9 @@ class TestAkordsChords(AkordsCase):
         self.assertEqual(self.chord_of(5, scale=CHROMATIC, chord='dia9'), [41, 44, 48, 51, 55])    # Fm9
 
     def test_every_scale_and_chord_type(self):
-        """Root position (fresh voice) matches the model for every scale and chord type."""
+        """Root position matches the model for every scale and chord type. The plain types
+        (CHORDS[::2]) don't depend on the chord before (only the smooth ones do), so the
+        chords follow each other without a silence between."""
         for scale in range(11):
             for chord in CHORDS[::2]:
                 e = self.machine(scale=scale, chord=chord)
@@ -97,4 +99,3 @@ class TestAkordsChords(AkordsCase):
                     with self.subTest(scale=scale, chord=chord, step=step):
                         self.play(e, tune_for(step, scale), decay=0, n=64)
                         self.assertEqual(self.info(e)['last'], model_chord(step, scale, 0, chord))
-                        e.audio(19200)                          # silence: the next is a fresh chord
