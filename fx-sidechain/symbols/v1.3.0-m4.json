@@ -1,0 +1,15 @@
+{
+  "_comment": "fx-sidechain: this mod's hook sites (the firmware facts they name are in the framework's symbols/v1.3.0-m4.json); loaded with them by perkons.mods",
+  "sites": {
+    "sidechain.trig_led.08103c6a": {
+      "addr": "0x08103c6a",
+      "call": "set_led",
+      "_note": "ui_update, after the page draw: each trigger key's LED (r0 key, r1 level)"
+    },
+    "sidechain.sync_led.08103ca6": {
+      "addr": "0x08103ca6",
+      "call": "set_led",
+      "_note": "ui_update, after the page draw: the SYNC LED (r0 key, r1 level)"
+    }
+  }
+}

@@ -31,6 +31,7 @@ on your computer.
 | **voice-step-sampler** | STEP SAMPLER: 64 samples per bank, any length, streamed from the card, each step its own; attack / start / slice, forward / choke / reverse (needs voice-map) | [voice-step-sampler/README.md](voice-step-sampler/README.md) |
 | **fx-reverb** | a reverb in place of the BBD delay, switched in the config menu | [fx-reverb/README.md](fx-reverb/README.md) |
 | **fx-freeze** | the FX section's 2-way switch as freeze: loops the delay, or holds the reverb | [fx-freeze/README.md](fx-freeze/README.md) |
+| **fx-sidechain** | the master voice's triggers duck the other three voices; depth, attack, hold and release on the step rows | [fx-sidechain/README.md](fx-sidechain/README.md) |
 | **eight-lanes** | four more sequencer tracks, 5-8, on a second page (SHIFT + PATTERN), sending MIDI only | [eight-lanes/README.md](eight-lanes/README.md) |
 | **per-track-lfo** | LFO groups: hold trigger keys and turn the LFO knobs to give those voices their own LFO | [per-track-lfo/README.md](per-track-lfo/README.md) |
 | **pattern-bpm** | each pattern keeps the tempo it was saved at, and plays at it (config row 3 step 14) | [pattern-bpm/README.md](pattern-bpm/README.md) |

@@ -1,0 +1,13 @@
+{
+  "options": [
+    {
+      "id": "fx-sidechain",
+      "title": "FX SIDECHAIN",
+      "summary": "A master voice's triggers duck the other three voices. Depth, attack, hold and release are set on the four step rows.",
+      "patches": [
+        "fx_sidechain"
+      ],
+      "code": "sc"
+    }
+  ]
+}
