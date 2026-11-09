@@ -11,7 +11,8 @@
       "requires": [
         "voice-map"
       ],
-      "kind": "voice"
+      "kind": "voice",
+      "author": ""
     }
   ]
 }

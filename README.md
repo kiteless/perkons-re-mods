@@ -50,6 +50,16 @@ make ui                                     # the Mod Matrix
 
 A mod folder has `README.md` (for users), `mod.json` (what the Mod Matrix offers),
 `patches/` (patch modules), `src/<core>/` (C), `lib/`, `tests/` and `docs/`.
+`perkons-repo.json` names this repo and describes it, and `perkons-mods.json` is what the
+Mod Matrix reads to list the mods and their memory: regenerate it (`make manifest
+MODS=../perkons-re-mods` in perkons-re) whenever a mod changes.
+
+## Other authors' mod repos
+
+`repos.json` lists the mod repos the Mod Matrix offers, this one and other authors'. To
+offer your mods without merging them here, make a mod repo of your own
+([how](https://github.com/kiteless/perkons-re/blob/main/docs/writing-mods.md#9-your-own-mod-repo))
+and open an issue or pull request to add it to `repos.json`.
 `releases/` holds release definitions for `make release`, which builds a versioned
 firmware file locally. Making a new mod: perkons-re's
 [docs/writing-mods.md](https://github.com/kiteless/perkons-re/blob/main/docs/writing-mods.md).
