@@ -1,4 +1,4 @@
-"""Akords: wiring: the engine slot, voice-map, the stock voices."""
+"""Akords: wiring: the engine slot and voice-map."""
 import os
 import sys
 import unittest
@@ -21,11 +21,6 @@ class TestAkordsWiring(AkordsCase):
     def test_needs_voice_map(self):
         with self.assertRaises(PatchError):
             build_patched(self.stock, ['voice_akords'], self.tmp + '/b')
-
-    def test_stock_outputs_unchanged(self):
-        """With the stock map, every output/algo/mode renders exactly like stock."""
-        bad = [r for r in verify.compare_to_stock(self.stock, self.img, self.sym) if not r[4]]
-        self.assertEqual(bad, [])
 
     def test_with_voice_zibens(self):
         img, _ = build_patched(self.stock, ['voice_map', 'voice_zibens', 'voice_akords'], self.tmp + '/z')

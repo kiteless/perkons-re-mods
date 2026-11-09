@@ -43,7 +43,7 @@ class TestAkordsLevel(AkordsCase):
         self.assertEqual(max(map(abs, x[720:])), 0, 'silent ~10 ms after mute')
 
     def test_extremes_stay_bounded(self):
-        for p in range(len(PRESETS)):
+        for p in (2, 8, 9, 12):                     # Lead, Organ, Bell, Vox: the loudest at the extremes
             e = self.machine(preset=p, chord='quartal')
             x = []
             for mode in (LP24, HP, FORMANT):

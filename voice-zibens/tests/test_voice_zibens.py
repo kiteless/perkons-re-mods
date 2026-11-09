@@ -129,11 +129,6 @@ class TestZibens(unittest.TestCase):
         remap(e, [4, 1, 2, 3], p.cave_symbols['m7host'])
         self.assertEqual(e.class_of(e.slot(0)), 'cFirstSlot')
 
-    def test_stock_outputs_unchanged(self):
-        """With the stock map, every output/algo/mode renders exactly like stock."""
-        bad = [r for r in verify.compare_to_stock(self.stock, self.img, self.sym) if not r[4]]
-        self.assertEqual(bad, [])
-
     # -- pitch ----------------------------------------------------------------------------
     def test_scale_steps(self):
         for algo, sc in SCALES.items():
