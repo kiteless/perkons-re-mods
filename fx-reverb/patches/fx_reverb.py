@@ -6,7 +6,6 @@ from perkons import m4host
 
 TARGET = 'v1.3.0'
 SUMMARY = 'FX reverb (config switchable with the BBD delay)'
-RISK = 'medium'
 
 MOD = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(MOD, 'src', 'm4')

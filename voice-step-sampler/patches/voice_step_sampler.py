@@ -9,7 +9,6 @@ from perkons.patch import PatchError
 
 TARGET = 'v1.3.0'
 SUMMARY = 'STEP SAMPLER for voice-map: 64 streamed samples per bank, a sample per step'
-RISK = 'medium'
 
 MOD = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC_M7 = os.path.join(MOD, 'src', 'm7')

@@ -6,7 +6,6 @@ from perkons import m4host
 
 TARGET = 'v1.3.0'
 SUMMARY = 'FX freeze on the 2-way switch (delay looper; reverb hold with fx-reverb)'
-RISK = 'medium'
 
 MOD = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(MOD, 'src', 'm4')

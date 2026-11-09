@@ -4,7 +4,6 @@ from _voice_map_common import apply_m4, apply_m7
 
 TARGET = 'v1.3.0'
 SUMMARY = 'Any engine on any voice, chosen per kit on the engine page (KIT + MOD)'
-RISK = 'medium'
 
 
 def apply(p, arg=None):

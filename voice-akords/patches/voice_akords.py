@@ -7,7 +7,6 @@ from perkons.patch import PatchError
 
 TARGET = 'v1.3.0'
 SUMMARY = 'voice-akords chord synth voice for voice-map: chords of up to 5 notes, progressions, 14 presets'
-RISK = 'medium'
 
 MOD = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(MOD, 'src', 'm7')

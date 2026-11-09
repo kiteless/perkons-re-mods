@@ -7,7 +7,6 @@ from perkons import m4host
 
 TARGET = 'v1.3.0'
 SUMMARY = 'LFO groups: hold trigger keys and turn the LFO knobs to give those voices their own LFO'
-RISK = 'medium'
 
 MOD = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(MOD, 'src', 'm4')

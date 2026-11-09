@@ -8,7 +8,6 @@ from perkons.patch import thumb_bl
 
 TARGET = 'v1.3.0'
 SUMMARY = 'Eight lanes: four MIDI-only sequencer lanes on a second page'
-RISK = 'high'
 
 MOD = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(MOD, 'src', 'm4')

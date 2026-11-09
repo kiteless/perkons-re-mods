@@ -7,7 +7,6 @@ from perkons import m4host
 
 TARGET = 'v1.3.0'
 SUMMARY = 'Pattern BPM: each pattern plays at the tempo it was saved at (config row 3 step 14)'
-RISK = 'low'
 
 MOD = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(MOD, 'src', 'm4')
