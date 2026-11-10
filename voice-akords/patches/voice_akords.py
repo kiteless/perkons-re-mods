@@ -11,7 +11,16 @@ SUMMARY = 'voice-akords chord synth voice for voice-map: chords of up to 5 notes
 MOD = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(MOD, 'src', 'm7')
 SRC_M4 = os.path.join(MOD, 'src', 'm4')
-VOICE_MAP_M4 = os.path.join(os.path.dirname(MOD), 'voice-map', 'src', 'm4')
+
+
+def voice_map_m4():
+    """voice-map's M4 sources (pk_vm.h), wherever voice-map is: it may come from another
+    mod repo, so not necessarily next to this mod."""
+    from perkons.mods import mod_dirs
+    for d in mod_dirs():
+        if os.path.exists(os.path.join(d, 'patches', 'voice_map.py')):
+            return os.path.join(d, 'src', 'm4')
+    return os.path.join(os.path.dirname(MOD), 'voice-map', 'src', 'm4')
 
 
 def apply(p, arg=None):
@@ -45,7 +54,7 @@ def apply(p, arg=None):
 
     # M4: the settings and sound of each kit's voices (kit sidecar record AKRD), the settings page
     h = m4host.host(p)
-    h.add([os.path.join(SRC_M4, 'akords_m4.c')], [SRC_M4, VOICE_MAP_M4],
+    h.add([os.path.join(SRC_M4, 'akords_m4.c')], [SRC_M4, voice_map_m4()],
           headers={'pk_ak_engine.h': engine_header})
     h.store('kit', 'AKRD', 'pk_ak_kit_save', 'pk_ak_kit_restore')
     for site in sorted(k for k in p.symbols['m4'].sites if k.startswith('kits.load.')):

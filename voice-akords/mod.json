@@ -9,7 +9,7 @@
       ],
       "code": "ak",
       "requires": [
-        "voice-map"
+        "kiteless/perkons-re-mods:voice-map"
       ],
       "kind": "voice",
       "author": ""
