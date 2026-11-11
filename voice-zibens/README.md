@@ -11,15 +11,15 @@ Build Pērkons firmware with **voice-zibens** ticked in the **Mod Matrix**, from
 firmware 1.3.0: follow [Get modded firmware](https://github.com/kiteless/perkons-re#get-modded-firmware)
 in perkons-re. No firmware files are provided here. To remove it, flash the official
 firmware again.
-voice-zibens runs as a voice-map engine: in the Mod Matrix, on the **ENGINES** tab, tick
-**ENABLE CUSTOM VOICE ENGINES**, then install voice-zibens. It takes the slot you install it in
+voice-zibens runs as a [voice map](https://github.com/kiteless/perkons-re/blob/main/docs/voice-map.md) engine: in the Mod Matrix, on the
+**ENGINES** tab, install voice-zibens. It takes the slot you install it in
 (5 if it's the first).
 
 ## Putting it on a voice
 
 On the voice-map engine page (KIT + MOD), press voice-zibens' column (its
 slot: 5 if it was the first voice installed) in the voice's row; its next note plays voice-zibens. The choice is kept with the kit: see
-[voice-map](../voice-map/). The voice's knobs, switches, trigger key and input, output jack, and the analog filter,
+[the voice map](https://github.com/kiteless/perkons-re/blob/main/docs/voice-map.md). The voice's knobs, switches, trigger key and input, output jack, and the analog filter,
 drive, FX send and level all stay with the voice; only the sound engine changes.
 
 ## At a glance

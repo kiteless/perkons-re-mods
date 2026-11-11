@@ -20,8 +20,7 @@ from perkons import verify  # noqa: E402
 from perkons.emu import Symbols, write_wav  # noqa: E402
 from perkons.fwimage import Image  # noqa: E402
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'voice-map', 'lib'))
-from vm_live import remap  # noqa: E402
+from perkons.voicemap import remap  # noqa: E402
 
 CAVE = {}
 

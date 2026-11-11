@@ -1,6 +1,5 @@
 """voice-zibens: a scale-stepped synth voice with an MS-style resonant filter (M7). An extra
-voice-map engine (the engine page column of its slot). Needs voice_map in the same
-build."""
+voice-map engine (the engine page column of its slot), on the platform's voice map."""
 import os
 
 from perkons.patch import PatchError

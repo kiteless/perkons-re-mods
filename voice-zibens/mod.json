@@ -8,9 +8,6 @@
         "voice_zibens"
       ],
       "code": "zb",
-      "requires": [
-        "voice-map"
-      ],
       "kind": "voice"
     }
   ]

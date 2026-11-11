@@ -18,9 +18,9 @@ from unicorn import UC_HOOK_CODE
 from unicorn.arm_const import UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2, UC_ARM_REG_R3
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path[:0] = [os.path.join(HERE, '..', 'lib'), os.path.join(HERE, '..', '..', 'voice-map', 'lib')]
+sys.path.insert(0, os.path.join(HERE, '..', 'lib'))
 import ss_layout as L  # noqa: E402
-from vm_live import remap  # noqa: E402
+from perkons.voicemap import remap  # noqa: E402
 
 POS1, POS2, POS3 = 1, 0, 2                  # switch values for panel positions 1, 2, 3
 ATTACK, START, SLICE = POS1, POS2, POS3     # ALGO

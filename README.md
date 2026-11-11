@@ -25,10 +25,8 @@ on your computer.
 
 | mod | what it does | how to use it |
 |---|---|---|
-| **voice-map** | any of the four voices can run any of the four voice engines (or a custom one: voice-zibens, voice-akords, voice-step-sampler), chosen per kit on the engine page (KIT + MOD) | [voice-map/README.md](voice-map/README.md) |
-| **voice-zibens** | a new synth voice: scale-locked resonant saw, PWM square, wavefolded sine (needs voice-map) | [voice-zibens/README.md](voice-zibens/README.md) |
-| **voice-akords** | a chord synth voice: chords in your scale, automatic progressions, 14 presets, a settings page per voice (needs voice-map) | [voice-akords/README.md](voice-akords/README.md) |
-| **voice-step-sampler** | STEP SAMPLER: 64 samples per bank, any length, streamed from the card, each step its own; attack / start / slice, forward / choke / reverse (needs voice-map) | [voice-step-sampler/README.md](voice-step-sampler/README.md) |
+| **voice-zibens** | a new synth voice: scale-locked resonant saw, PWM square, wavefolded sine | [voice-zibens/README.md](voice-zibens/README.md) |
+| **voice-step-sampler** | STEP SAMPLER: 64 samples per bank, any length, streamed from the card, each step its own; attack / start / slice, forward / choke / reverse | [voice-step-sampler/README.md](voice-step-sampler/README.md) |
 | **fx-reverb** | a reverb in place of the BBD delay, switched in the config menu | [fx-reverb/README.md](fx-reverb/README.md) |
 | **fx-freeze** | the FX section's 2-way switch as freeze: loops the delay, or holds the reverb | [fx-freeze/README.md](fx-freeze/README.md) |
 | **eight-lanes** | four more sequencer tracks, 5-8, on a second page (SHIFT + PATTERN), sending MIDI only | [eight-lanes/README.md](eight-lanes/README.md) |
@@ -36,6 +34,8 @@ on your computer.
 | **pattern-bpm** | each pattern keeps the tempo it was saved at, and plays at it (config row 3 step 14) | [pattern-bpm/README.md](pattern-bpm/README.md) |
 
 All of them are for Pērkons firmware **1.3.0**, and any combination can be built together.
+The voice engines run on the [voice map](https://github.com/kiteless/perkons-re/blob/main/docs/voice-map.md) (any engine on any voice, chosen
+per kit), which perkons-re builds into every firmware.
 
 ## For developers
 
@@ -44,7 +44,7 @@ Clone this repo next to `perkons-re`; the framework finds it (or set `PERKONS_MO
 
 ```sh
 make test                                   # framework + mod tests
-make build PATCHES='voice_map:bank voice_zibens'  # a firmware file in builds/
+make build PATCHES='voice_zibens'           # a firmware file in builds/
 make ui                                     # the Mod Matrix
 ```
 

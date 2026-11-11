@@ -20,9 +20,6 @@
    "memory": {
     "v1.3.0": {
      "ram": {
-      "main": {
-       "src/m4/host/pk_host.c:.bss.pk_host_magic": 4
-      },
       "store": {
        "kiteless/perkons-re-mods:eight-lanes/src/m4/el_config.c:.pk_axi": 8,
        "kiteless/perkons-re-mods:eight-lanes/src/m4/el_core.c:.pk_axi": 2360,
@@ -32,13 +29,7 @@
       }
      },
      "takeovers": {},
-     "borrows": {
-      "store": {
-       "json_buf": [
-        "m4host"
-       ]
-      }
-     }
+     "borrows": {}
     }
    }
   },
@@ -60,7 +51,6 @@
     "v1.3.0": {
      "ram": {
       "main": {
-       "src/m4/host/pk_host.c:.bss.pk_host_magic": 4,
        "src/m4/host/pk_host_fx.c:.bss.pk_fx_buf": 32768,
        "kiteless/perkons-re-mods:fx-freeze/src/m4/fx_freeze.c:.bss.release": 4,
        "kiteless/perkons-re-mods:fx-freeze/src/m4/fx_freeze.c:.bss.loop_pos": 4,
@@ -95,7 +85,6 @@
     "v1.3.0": {
      "ram": {
       "main": {
-       "src/m4/host/pk_host.c:.bss.pk_host_magic": 4,
        "src/m4/host/pk_host_fx.c:.bss.pk_fx_buf": 32768,
        "kiteless/perkons-re-mods:fx-reverb/src/m4/fx_reverb.c:.bss.int_i": 4,
        "kiteless/perkons-re-mods:fx-reverb/src/m4/fx_reverb.c:.bss.dec_i": 4,
@@ -131,21 +120,12 @@
    "memory": {
     "v1.3.0": {
      "ram": {
-      "main": {
-       "src/m4/host/pk_host.c:.bss.pk_host_magic": 4
-      },
       "store": {
        "kiteless/perkons-re-mods:pattern-bpm/src/m4/pattern_bpm.c:.pk_axi": 132
       }
      },
      "takeovers": {},
-     "borrows": {
-      "store": {
-       "json_buf": [
-        "m4host"
-       ]
-      }
-     }
+     "borrows": {}
     }
    }
   },
@@ -167,7 +147,6 @@
     "v1.3.0": {
      "ram": {
       "main": {
-       "src/m4/host/pk_host.c:.bss.pk_host_magic": 4,
        "kiteless/perkons-re-mods:per-track-lfo/src/m4/per_track_lfo.c:.bss.turning": 1,
        "kiteless/perkons-re-mods:per-track-lfo/src/m4/per_track_lfo.c:.bss.anchor_keys": 3,
        "kiteless/perkons-re-mods:per-track-lfo/src/m4/per_track_lfo.c:.bss.anchor": 12,
@@ -186,108 +165,6 @@
    }
   },
   {
-   "id": "voice-akords",
-   "dir": "voice-akords",
-   "title": "Akords",
-   "summary": "A CHORD SYNTH: EACH NOTE PLAYS A CHORD OF UP TO 5 NOTES IN YOUR SCALE, WITH CHORD PROGRESSIONS, 14 PRESETS AND A SETTINGS PAGE.",
-   "readme": "voice-akords/README.md",
-   "author": "",
-   "patches": [
-    "voice_akords"
-   ],
-   "code": "ak",
-   "kind": "voice",
-   "requires": [
-    "voice-map"
-   ],
-   "conflicts": [],
-   "target": "1.3.0",
-   "memory": {
-    "v1.3.0": {
-     "ram": {
-      "voice": {
-       "voice_map": 65536,
-       "src/m7/host/pk7_host.c:.bss.pk7_host_magic": 4,
-       "kiteless/perkons-re-mods:voice-akords/src/m7/akords.c:.bss.prog_off": 4,
-       "kiteless/perkons-re-mods:voice-akords/src/m7/akords.c:.bss.drive": 4,
-       "kiteless/perkons-re-mods:voice-akords/src/m7/akords.c:.bss.preset_pressed": 4,
-       "kiteless/perkons-re-mods:voice-akords/src/m7/akords.c:.bss.settings": 16,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.pending": 4,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.static_init": 8,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.crush_static": 16,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.sampler_static": 16,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.p2cfg": 1,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.samples_ready": 1,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.running": 6,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.instance": 16
-      },
-      "main": {
-       "src/m4/host/pk_host.c:.bss.pk_host_magic": 4
-      },
-      "store": {
-       "kiteless/perkons-re-mods:voice-akords/src/m4/akords_m4.c:.pk_axi": 828,
-       "kiteless/perkons-re-mods:voice-map/src/m4/voice_map_m4.c:.pk_axi": 136
-      }
-     },
-     "takeovers": {},
-     "borrows": {
-      "store": {
-       "json_buf": [
-        "m4host"
-       ]
-      }
-     }
-    }
-   }
-  },
-  {
-   "id": "voice-map",
-   "dir": "voice-map",
-   "title": "VOICE MAP",
-   "summary": "ANY VOICE CAN PLAY ANY ENGINE, SAVED WITH YOUR KITS. KIT+MOD LOADS CONFIG FOR UP TO 12 MORE ENGINES, CONFIGURED BELOW.",
-   "readme": "voice-map/README.md",
-   "patches": [
-    "voice_map"
-   ],
-   "code": "vm",
-   "kind": "mod",
-   "requires": [],
-   "conflicts": [],
-   "target": "1.3.0",
-   "memory": {
-    "v1.3.0": {
-     "ram": {
-      "voice": {
-       "voice_map": 65536,
-       "src/m7/host/pk7_host.c:.bss.pk7_host_magic": 4,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.pending": 4,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.static_init": 8,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.crush_static": 16,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.sampler_static": 16,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.p2cfg": 1,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.samples_ready": 1,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.running": 6,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.instance": 16
-      },
-      "main": {
-       "src/m4/host/pk_host.c:.bss.pk_host_magic": 4
-      },
-      "store": {
-       "kiteless/perkons-re-mods:voice-map/src/m4/voice_map_m4.c:.pk_axi": 136
-      }
-     },
-     "takeovers": {},
-     "borrows": {
-      "store": {
-       "json_buf": [
-        "m4host"
-       ]
-      }
-     }
-    }
-   }
-  },
-  {
    "id": "voice-step-sampler",
    "dir": "voice-step-sampler",
    "title": "STEP SAMPLER",
@@ -298,28 +175,13 @@
    ],
    "code": "ss",
    "kind": "voice",
-   "requires": [
-    "voice-map"
-   ],
+   "requires": [],
    "conflicts": [],
    "target": "1.3.0",
    "memory": {
     "v1.3.0": {
      "ram": {
-      "voice": {
-       "voice_map": 65536,
-       "src/m7/host/pk7_host.c:.bss.pk7_host_magic": 4,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.pending": 4,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.static_init": 8,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.crush_static": 16,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.sampler_static": 16,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.p2cfg": 1,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.samples_ready": 1,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.running": 6,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.instance": 16
-      },
       "main": {
-       "src/m4/host/pk_host.c:.bss.pk_host_magic": 4,
        "kiteless/perkons-re-mods:voice-step-sampler/src/m4/ss_m4.c:.bss.pk_ss_step_sample": 4096,
        "kiteless/perkons-re-mods:voice-step-sampler/src/m4/ss_m4.c:.bss.pk_ss_kit_sample": 256,
        "kiteless/perkons-re-mods:voice-step-sampler/src/m4/ss_m4.c:.bss.fired": 4,
@@ -332,9 +194,6 @@
        "kiteless/perkons-re-mods:voice-step-sampler/src/m4/ss_page.c:.bss.clip": 4,
        "kiteless/perkons-re-mods:voice-step-sampler/src/m4/ss_page.c:.bss.sounding": 4,
        "kiteless/perkons-re-mods:voice-step-sampler/src/m4/ss_page.c:.bss.held_mask": 8
-      },
-      "store": {
-       "kiteless/perkons-re-mods:voice-map/src/m4/voice_map_m4.c:.pk_axi": 136
       }
      },
      "takeovers": {
@@ -345,8 +204,7 @@
      "borrows": {
       "store": {
        "json_buf": [
-        "voice-step-sampler",
-        "m4host"
+        "voice-step-sampler"
        ]
       }
      }
@@ -364,41 +222,14 @@
    ],
    "code": "zb",
    "kind": "voice",
-   "requires": [
-    "voice-map"
-   ],
+   "requires": [],
    "conflicts": [],
    "target": "1.3.0",
    "memory": {
     "v1.3.0": {
-     "ram": {
-      "voice": {
-       "voice_map": 65536,
-       "src/m7/host/pk7_host.c:.bss.pk7_host_magic": 4,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.pending": 4,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.static_init": 8,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.crush_static": 16,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.sampler_static": 16,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.p2cfg": 1,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.samples_ready": 1,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.running": 6,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.instance": 16
-      },
-      "main": {
-       "src/m4/host/pk_host.c:.bss.pk_host_magic": 4
-      },
-      "store": {
-       "kiteless/perkons-re-mods:voice-map/src/m4/voice_map_m4.c:.pk_axi": 136
-      }
-     },
+     "ram": {},
      "takeovers": {},
-     "borrows": {
-      "store": {
-       "json_buf": [
-        "m4host"
-       ]
-      }
-     }
+     "borrows": {}
     }
    }
   }

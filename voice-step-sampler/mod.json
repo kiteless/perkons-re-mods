@@ -8,9 +8,6 @@
         "voice_step_sampler"
       ],
       "code": "ss",
-      "requires": [
-        "voice-map"
-      ],
       "kind": "voice"
     }
   ]
