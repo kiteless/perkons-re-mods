@@ -8,11 +8,7 @@
         "voice_akords"
       ],
       "code": "ak",
-      "requires": [
-        "kiteless/perkons-re-mods:voice-map"
-      ],
-      "kind": "voice",
-      "author": ""
+      "kind": "voice"
     }
   ]
 }

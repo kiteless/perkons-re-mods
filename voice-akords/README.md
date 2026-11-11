@@ -14,8 +14,8 @@ official firmware 1.3.0: follow [Get modded firmware](https://github.com/kiteles
 in perkons-re. No firmware files are provided here. To remove it, flash the official
 firmware again.
 
-voice-akords runs as a voice-map engine: in the Mod Matrix, on the **ENGINES** tab, tick
-**ENABLE CUSTOM VOICE ENGINES**, then install voice-akords. It takes the slot you install
+voice-akords runs as a [voice map](https://github.com/kiteless/perkons-re/blob/main/docs/voice-map.md) engine: in the Mod Matrix, on the
+**ENGINES** tab, install voice-akords. It takes the slot you install
 it in (5 if it's the first).
 
 ## Putting it on a voice

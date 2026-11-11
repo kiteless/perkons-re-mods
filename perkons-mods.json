@@ -9,53 +9,30 @@
    "title": "Akords",
    "summary": "A CHORD SYNTH: EACH NOTE PLAYS A CHORD OF UP TO 5 NOTES IN YOUR SCALE, WITH CHORD PROGRESSIONS, 14 PRESETS AND A SETTINGS PAGE.",
    "readme": "voice-akords/README.md",
-   "author": "",
    "patches": [
     "voice_akords"
    ],
    "code": "ak",
    "kind": "voice",
-   "requires": [
-    "kiteless/perkons-re-mods:voice-map"
-   ],
+   "requires": [],
    "conflicts": [],
    "target": "1.3.0",
    "memory": {
     "v1.3.0": {
      "ram": {
       "voice": {
-       "voice_map": 65536,
-       "src/m7/host/pk7_host.c:.bss.pk7_host_magic": 4,
        "remixed123/perkons-re-mods:voice-akords/src/m7/akords.c:.bss.prog_off": 4,
        "remixed123/perkons-re-mods:voice-akords/src/m7/akords.c:.bss.drive": 4,
        "remixed123/perkons-re-mods:voice-akords/src/m7/akords.c:.bss.sound": 16,
        "remixed123/perkons-re-mods:voice-akords/src/m7/akords.c:.bss.waiting": 4,
-       "remixed123/perkons-re-mods:voice-akords/src/m7/akords.c:.bss.settings": 16,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.pending": 4,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.static_init": 8,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.crush_static": 16,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.sampler_static": 16,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.p2cfg": 1,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.samples_ready": 1,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.running": 6,
-       "kiteless/perkons-re-mods:voice-map/src/m7/voice_map.c:.bss.instance": 16
-      },
-      "main": {
-       "src/m4/host/pk_host.c:.bss.pk_host_magic": 4
+       "remixed123/perkons-re-mods:voice-akords/src/m7/akords.c:.bss.settings": 16
       },
       "store": {
-       "remixed123/perkons-re-mods:voice-akords/src/m4/akords_m4.c:.pk_axi": 1624,
-       "kiteless/perkons-re-mods:voice-map/src/m4/voice_map_m4.c:.pk_axi": 136
+       "remixed123/perkons-re-mods:voice-akords/src/m4/akords_m4.c:.pk_axi": 1624
       }
      },
      "takeovers": {},
-     "borrows": {
-      "store": {
-       "json_buf": [
-        "m4host"
-       ]
-      }
-     }
+     "borrows": {}
     }
    }
   }

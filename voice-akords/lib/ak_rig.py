@@ -1,9 +1,7 @@
 """Akords tests: the shared rig (a booted M7 running Akords on a voice-map slot, set up
 through its knobs) and the music helpers. Needs arm-none-eabi-gcc."""
 import math
-import os
 import shutil
-import sys
 import tempfile
 import unittest
 
@@ -12,9 +10,7 @@ from perkons import verify
 from perkons.emu import Symbols
 from perkons.fwimage import Image
 from perkons.patch import PatchError
-
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'voice-map', 'lib'))
-from vm_live import remap  # noqa: E402
+from perkons.voicemap import remap
 
 SR = 48000
 POS1, POS2, POS3 = 1, 0, 2          # switch values for panel positions 1, 2, 3
