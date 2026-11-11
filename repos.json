@@ -2,6 +2,7 @@
  "_comment": "The mod repos the Mod Matrix offers (perkons-re: tools/perkons/repos.py). default: ticked unless the user unticks it. note: shown under the repo, in full.",
  "repos": [
   {"repo": "kiteless/perkons-re-mods", "default": true,
-   "note": "VOICE-MAP MOD REQUIRED TO INSTALL CUSTOM VOICE ENGINES"}
+   "note": "VOICE-MAP MOD REQUIRED TO INSTALL CUSTOM VOICE ENGINES"},
+  {"repo": "remixed123/perkons-re-mods", "default": true}
  ]
 }
