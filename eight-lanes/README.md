@@ -108,6 +108,6 @@ as they were; flash this mod again and tracks 5–8 are back.
 
 * Note repeat on tracks 5–8 starts when you press the key; on voices 1–4 it lines up with
   the clock.
-* It uses almost all of the STORE memory (in the Mod Matrix's memory meters), for
-  four more tracks in all 64 patterns.
+* It uses most of the STORE memory (about 94 KB of 111.5 KB in the Mod Matrix's memory
+  meters), for four more tracks in all 64 patterns.
 

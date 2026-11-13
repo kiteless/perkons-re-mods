@@ -12,7 +12,12 @@
  * the pattern is left, its header goes back to its own block before the stock revert
  * (the revert then restores the stock tracks there) and the lane edits are dropped, as
  * stock drops track edits. Save packs the lanes into the store, which goes in the host's
- * pattern sidecar (PP.PAX, record "EL8P"); bank load reads it back. */
+ * pattern sidecar (PP.PAX, record "EL8P"); bank load reads it back.
+ *
+ * In the store a step is one word (lane_pk_t): every value the stock code writes fits
+ * (state 0-3, fire flag 10 or 0, the SHUFFLE offset 0-99, ratchet 0-4, condition 0-12,
+ * note and velocity 0-127). The sidecar keeps the full 8-byte steps (lane_rec_t), so
+ * the files are those of earlier builds. */
 #include "el.h"
 
 #define NWORK           3           /* current, queued, and one still draining */
@@ -24,24 +29,73 @@ typedef struct {
     uint8_t locked, glide;          /* bit i = el_slot_of[i] */
 } lane_lock_t;
 
-typedef struct {
+#define NSET            (FW_BLK_LOCKS - FW_STEPS * 8)  /* +0x80: length, speed, play mode, ... */
+
+typedef struct {                    /* a lane in the sidecar file (EL8P) */
     uint8_t steps[FW_STEPS * 8];
-    uint8_t settings[FW_BLK_LOCKS - FW_STEPS * 8];  /* +0x80: length, speed, play mode, ... */
+    uint8_t settings[NSET];
     lane_lock_t lock[FW_STEPS];
 } lane_rec_t;                       /* 364 B */
 
-_Static_assert(sizeof(lane_rec_t) == 364, "lane record");
+typedef struct {                    /* a lane in the store */
+    uint32_t steps[FW_STEPS];       /* pack_step() */
+    uint8_t settings[NSET];
+    lane_lock_t lock[FW_STEPS];
+} lane_pk_t;                        /* 300 B */
 
-PK_AXI static lane_rec_t store[NPATTERNS][NLANES];
-PK_AXI static lane_rec_t empty_lane;
+_Static_assert(sizeof(lane_rec_t) == 364, "lane record");
+_Static_assert(sizeof(lane_pk_t) == 300, "packed lane");
+
+PK_AXI static lane_pk_t store[NPATTERNS][NLANES];
+PK_AXI static lane_pk_t empty_lane;
 PK_AXI static uint8_t work[NWORK][TRACKS * 0x22c] __attribute__((aligned(4)));
 PK_AXI static int8_t work_owner[NWORK];      /* pattern index, or -1 */
 
 /* ---- pack / unpack ----------------------------------------------------------------- */
 
-static void pack(lane_rec_t *r, const uint8_t *block)
+static uint32_t clip(uint32_t v, uint32_t max)
 {
-    pk_copy(r->steps, block, sizeof r->steps + sizeof r->settings);
+    return v < max ? v : max;
+}
+
+/* a step record (8 B) as one word: state 2 bits, fire flag 1 (+1 nonzero: the sequencer
+ * only tests it), SHUFFLE offset 7 (+2, int16), ratchet 3, condition 4, note 7,
+ * velocity 7. Values the stock code never writes are clipped. */
+static uint32_t pack_step(const uint8_t *s)
+{
+    return clip(s[0], 3) | (uint32_t)(s[1] != 0) << 2 | clip((uint32_t)(s[2] | s[3] << 8), 127) << 3
+           | clip(s[4], 7) << 10 | clip(s[5], 15) << 13 | (uint32_t)(s[6] & 0x7f) << 17
+           | (uint32_t)(s[7] & 0x7f) << 24;
+}
+
+static void unpack_step(uint8_t *s, uint32_t w)
+{
+    s[0] = (uint8_t)(w & 3);
+    s[1] = w >> 2 & 1 ? 10 : 0;
+    s[2] = (uint8_t)(w >> 3 & 0x7f);
+    s[3] = 0;
+    s[4] = (uint8_t)(w >> 10 & 7);
+    s[5] = (uint8_t)(w >> 13 & 15);
+    s[6] = (uint8_t)(w >> 17 & 0x7f);
+    s[7] = (uint8_t)(w >> 24 & 0x7f);
+}
+
+static void pack_steps(uint32_t *w, const uint8_t *steps)
+{
+    for (int k = 0; k < FW_STEPS; k++)
+        w[k] = pack_step(steps + 8 * k);
+}
+
+static void unpack_steps(uint8_t *steps, const uint32_t *w)
+{
+    for (int k = 0; k < FW_STEPS; k++)
+        unpack_step(steps + 8 * k, w[k]);
+}
+
+static void pack(lane_pk_t *r, const uint8_t *block)
+{
+    pack_steps(r->steps, block);
+    pk_copy(r->settings, block + FW_STEPS * 8, NSET);
     for (int k = 0; k < FW_STEPS; k++) {
         const uint8_t *src = block + FW_BLK_LOCKS + k * FW_LOCK_SIZE;
         uint16_t locked = FW_U16(src + 0x16), glide = FW_U16(src + 0x18);
@@ -57,10 +111,11 @@ static void pack(lane_rec_t *r, const uint8_t *block)
     }
 }
 
-static void unpack(uint8_t *block, const lane_rec_t *r)
+static void unpack(uint8_t *block, const lane_pk_t *r)
 {
     pk_copy(block, PTR(SYM_track_template), BLOCK);
-    pk_copy(block, r->steps, sizeof r->steps + sizeof r->settings);
+    unpack_steps(block, r->steps);
+    pk_copy(block + FW_STEPS * 8, r->settings, NSET);
     for (int k = 0; k < FW_STEPS; k++) {
         uint8_t *d = block + FW_BLK_LOCKS + k * FW_LOCK_SIZE;
         const lane_lock_t *s = &r->lock[k];
@@ -75,6 +130,19 @@ static void unpack(uint8_t *block, const lane_rec_t *r)
         FW_U16(d + 0x16) = locked;
         FW_U16(d + 0x18) = glide;
     }
+}
+
+/* the sidecar's form of a lane, and back */
+static void to_rec(lane_rec_t *d, const lane_pk_t *r)
+{
+    unpack_steps(d->steps, r->steps);
+    pk_copy(d->settings, r->settings, NSET + sizeof d->lock);
+}
+
+static void from_rec(lane_pk_t *d, const lane_rec_t *r)
+{
+    pack_steps(d->steps, r->steps);
+    pk_copy(d->settings, r->settings, NSET + sizeof d->lock);
 }
 
 /* ---- patterns and working blocks --------------------------------------------------- */
@@ -162,7 +230,7 @@ void el_patterns_init(void)
     pack(&empty_lane, PTR(SYM_track_template));
     for (int p = 0; p < NPATTERNS; p++)
         for (int l = 0; l < NLANES; l++)
-            pk_copy(&store[p][l], &empty_lane, sizeof(lane_rec_t));
+            pk_copy(&store[p][l], &empty_lane, sizeof(lane_pk_t));
     for (int w = 0; w < NWORK; w++)
         work_owner[w] = -1;
     uint8_t *s = el_seq();
@@ -220,7 +288,7 @@ int pk_el_save(uint8_t *src, int bank, int idx)
         if (work_of(blk) >= 0)                  /* the pattern being played/edited */
             pack(&store[idx][l], blk + (FIRST_LANE + l) * BLOCK);
         else if (sp >= 0 && sp != idx)          /* not expanded: its saved lanes */
-            pk_copy(&store[idx][l], &store[sp][l], sizeof(lane_rec_t));
+            pk_copy(&store[idx][l], &store[sp][l], sizeof(lane_pk_t));
     }
     (void)bank;
     /* save to another slot queues idx (stock): attached then with the lanes just stored */
@@ -237,7 +305,7 @@ void pk_el_clear(int bank, int idx)
     if (idx < 0 || idx >= NPATTERNS)
         return;
     for (int l = 0; l < NLANES; l++)
-        pk_copy(&store[idx][l], &empty_lane, sizeof(lane_rec_t));
+        pk_copy(&store[idx][l], &empty_lane, sizeof(lane_pk_t));
     uint8_t *blk = PTR(FW_U32(header(idx) + FW_HDR_BLOCK));
     if (work_of(blk) >= 0)
         for (int l = 0; l < NLANES; l++)
@@ -262,23 +330,24 @@ uint32_t pk_el_pat_save(int bank, int idx, uint8_t *buf, uint32_t max)
 {
     (void)bank;
     const uint8_t *e = (const uint8_t *)&empty_lane, *r = (const uint8_t *)store[idx];
-    uint32_t n = sizeof store[idx];
+    uint32_t n = NLANES * sizeof(lane_rec_t);
     int used = 0;
-    for (uint32_t i = 0; i < n && !used; i++)
-        used = r[i] != e[i % sizeof(lane_rec_t)];
+    for (uint32_t i = 0; i < sizeof store[idx] && !used; i++)
+        used = r[i] != e[i % sizeof(lane_pk_t)];
     if (!used || n > max)
         return 0;                               /* empty lanes: no record */
-    pk_copy(buf, store[idx], n);
+    for (int l = 0; l < NLANES; l++)
+        to_rec((lane_rec_t *)buf + l, &store[idx][l]);
     return n;
 }
 
 void pk_el_pat_load(int bank, int idx, const uint8_t *rec, uint32_t len)
 {
     (void)bank;
-    if (len == sizeof store[idx]) {
-        pk_copy(store[idx], rec, len);
-        return;
+    for (int l = 0; l < NLANES; l++) {
+        if (len == NLANES * sizeof(lane_rec_t))
+            from_rec(&store[idx][l], (const lane_rec_t *)rec + l);
+        else
+            pk_copy(&store[idx][l], &empty_lane, sizeof(lane_pk_t));
     }
-    for (int l = 0; l < NLANES; l++)
-        pk_copy(&store[idx][l], &empty_lane, sizeof(lane_rec_t));
 }

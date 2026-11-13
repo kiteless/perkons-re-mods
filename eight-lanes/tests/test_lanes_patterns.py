@@ -70,6 +70,37 @@ class TestLanesPatterns(unittest.TestCase):
         self.assertEqual((lane[2 * 8], lane[2 * 8 + 6], lane[2 * 8 + 7]), (1, 55, 77))
         self.assertEqual(rec[16], 0)                             # lane 5 untouched
 
+    def test_every_stock_value_survives_the_store(self):
+        """Lanes are packed in RAM (a word per step): every value the stock code writes
+        into a step or the track settings comes back the same, after a switch and after a
+        bank load from the sidecar."""
+        h = lanes_rig()
+        steps = [bytes([1, 10, 99, 0, 4, 12, 127, 127]), bytes([0, 0, 0, 0, 0, 0, 0, 0]),
+                 bytes([1, 10, 45, 0, 2, 7, 36, 64]), bytes([1, 0, 5, 0, 1, 1, 0, 1])]
+        settings = bytes([0, 7, 4, 0, 0, 0, 7, 99, 4, 0, 0, 0])
+        for t, k in ((4, 0), (5, 3), (6, 9), (7, 15)):
+            h.e.uc.mem_write(h.block(t) + 8 * k, steps[t - 4])
+            h.e.uc.mem_write(h.block(t) + 0x80, settings)
+            lock = h.block(t) + 0x8c + 0x1a * k
+            h.e.uc.mem_write(lock, bytes(range(1, 23)))          # 11 slot values
+            h.e.uc.mem_write(lock + 0x16, bytes([0x33, 0x03, 0x11, 0x00]))   # slots 0 1 4 5 8 9 locked
+        want = {t: bytes(h.e.uc.mem_read(h.block(t), 0x8c)) for t in range(4, 8)}
+        self.save(h, p=0, bank=1)
+        h.switch_to(1)
+        h.switch_to(0)
+        self.assertEqual({t: bytes(h.e.uc.mem_read(h.block(t), 0x8c)) for t in range(4, 8)}, want)
+        h2 = lanes_rig(sd=dict(h.e.sd_written))
+        h2.e.call(h2.cave['pk4_store_bank_load'], 1, max_insns=900_000_000)
+        h2.switch_to(1)
+        h2.switch_to(0)
+        self.assertEqual({t: bytes(h2.e.uc.mem_read(h2.block(t), 0x8c)) for t in range(4, 8)}, want)
+        for t, k in ((4, 0), (7, 15)):                          # the lanes' slots and masks
+            lock = h2.block(t) + 0x8c + 0x1a * k
+            got = h2.e.uc.mem_read(lock, 0x1a)
+            for slot in (0, 1, 4, 5, 8, 9):
+                self.assertEqual(got[2 * slot:2 * slot + 2], bytes([2 * slot + 1, 2 * slot + 2]))
+            self.assertEqual(bytes(got[0x16:0x1a]), bytes([0x33, 0x03, 0x11, 0x00]))
+
     def test_empty_lanes_no_record(self):
         h = lanes_rig()
         h.set_step(0, 1, 40, 99)                                 # a voice step only
