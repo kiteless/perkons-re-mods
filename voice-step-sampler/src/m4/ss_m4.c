@@ -39,8 +39,10 @@
 
 /* switch values for panel positions 1, 2, 3 */
 enum { POS1 = 1, POS2 = 0, POS3 = 2 };
-/* MODE: forward, forward choked at the next cue, reverse */
-enum { FORWARD = POS1, CHOKE = POS2, REVERSE = POS3 };
+/* the top switch (ALGO): how each hit plays */
+enum { FORWARD = POS1, REVERSE = POS2, GRAINS = POS3 };
+/* the bottom switch (MODE): what PARAM2 is */
+enum { ATTACK = POS1, START = POS2, SLICE = POS3 };
 
 _Static_assert(BOUNCE_SIZE >= 2048, "the JSON buffer bounces reads");
 
@@ -135,6 +137,8 @@ static int read_frames(int i, int s, uint32_t lo, uint32_t n, int16_t *dst)
 
 static void reverse(int16_t *p, uint32_t n)
 {
+    if (n < 2)
+        return;
     for (uint32_t i = 0, j = n - 1; i < j; i++, j--) {
         int16_t x = p[i];
         p[i] = p[j];
@@ -322,30 +326,29 @@ static uint32_t next_cut(int s, uint32_t f)
     return n;
 }
 
-/* the hit's stretch for sample s, ALGO / MODE (switch values), PARAM2 (0..4095). Forward
- * plays on to the sample's end, choke stops at the next cut, reverse plays the stretch
- * backwards; forward and reverse go round again while the envelope is open */
+/* the hit's stretch for sample s, ALGO / MODE (switch values), PARAM2 (0..4095).
+ * MODE: PARAM2 is the attack (the whole sample), the start point (from there to the end)
+ * or the slice (that slice only: it plays once). ALGO: forward, reverse (the same stretch
+ * backwards), or grains from a window of up to SS_GRAIN_FRAMES at its start; forward and
+ * reverse go round again while the envelope is open, except a slice */
 static void plan(plan_t *p, int s, int algo, int mode, uint32_t p2)
 {
     uint32_t n = SS->sample[s].frames;
     p->sample = (uint32_t)s;
-    p->dir = mode == REVERSE ? SS_REV : SS_FWD;
-    p->loop = mode != CHOKE;
+    p->dir = algo == REVERSE ? SS_REV : SS_FWD;
+    p->loop = algo == GRAINS ? SS_PLAY_GRAINS : mode == SLICE ? SS_PLAY_ONCE : SS_PLAY_LOOP;
     p->rstart = 0;
     p->rend = n;
-    if (algo == POS3) {                                 /* slice: the cues, else 16 equal */
-        uint32_t ns = files[s].ncue ? files[s].ncue : 16u, end;
-        slice(s, p2 * ns / 4096u, &p->rstart, &end);
-        if (mode != FORWARD)
-            p->rend = end;
-        return;
-    }
-    if (algo == POS2)                                   /* start: PARAM2 */
+    if (mode == SLICE) {                                /* the cues, else 16 equal */
+        uint32_t ns = files[s].ncue ? files[s].ncue : 16u;
+        slice(s, p2 * ns / 4096u, &p->rstart, &p->rend);
+    } else if (mode == START) {
         p->rstart = (uint32_t)((uint64_t)n * p2 / 4096u);
-    if (p->rstart >= p->rend)
-        p->rstart = p->rend ? p->rend - 1 : 0;
-    if (mode == CHOKE)
-        p->rend = next_cut(s, p->rstart);
+        if (p->rstart >= p->rend)
+            p->rstart = p->rend ? p->rend - 1 : 0;
+    }
+    if (algo == GRAINS && p->rend - p->rstart > SS_GRAIN_FRAMES)
+        p->rend = p->rstart + SS_GRAIN_FRAMES;
 }
 
 static inline uint32_t first_frame(const plan_t *p)
@@ -406,12 +409,12 @@ static void hit(int v, int sequenced)
             a_len = o->next_len;
             cover = a_len;
             o->next_len = 0;
-        } else if (!cover) {                            /* not loaded: a late start, from the beginning */
+        } else if (!cover && p.loop != SS_PLAY_GRAINS) {  /* not loaded: a late start, from the beginning */
             p.dir = SS_FWD;
             p.rstart = 0;
-            p.rend = mode == CHOKE ? next_cut(s, 0) : SS->sample[s].frames;
+            p.rend = p.loop == SS_PLAY_ONCE ? next_cut(s, 0) : SS->sample[s].frames;
             cover = head_cover(&p);
-        }
+        }                                               /* (grains wait for their window) */
     } else {
         p.sample = (uint32_t)s;                         /* an empty slot: silent */
         cover = 0;
@@ -475,8 +478,8 @@ static void stream(int o)
         return;                                         /* the note has ended */
     uint32_t t_read = h->seen_gen == gen ? h->t_read : 0;
     uint32_t to = h->ring_to, ahead = to > t_read ? to - t_read : 0;
-    if (!h->loop && to >= h->rend - h->rstart)
-        return;                                         /* choked: it doesn't go round */
+    if (h->loop != SS_PLAY_LOOP && to >= h->rend - h->rstart)
+        return;                                         /* played once, or a granular window: loaded */
     if (ahead + GUARD >= SS_RING_FRAMES)
         return;                                         /* full */
     uint32_t n = SS_RING_FRAMES - GUARD - ahead, slot = to % SS_RING_FRAMES;

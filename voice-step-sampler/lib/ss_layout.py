@@ -29,6 +29,8 @@ BASE, CTRL, HEADS, FILS, NEXT, RING, END = (D[k] for k in (
 MAGIC = D['SS_MAGIC']
 FWD, REV = 0, 1
 SRC_HEAD, SRC_NEXT = 0, 1
+PLAY_ONCE, PLAY_LOOP, PLAY_GRAINS = 0, 1, 2
+GRAIN_FRAMES = D['SS_GRAIN_FRAMES']
 
 # ss_ctrl_t / ss_sample_t / ss_out_t (all naturally aligned u32, four u8 together)
 SAMPLE_SIZE = 16

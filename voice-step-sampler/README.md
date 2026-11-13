@@ -1,9 +1,10 @@
 # voice-step-sampler
 
 **STEP SAMPLER**: a sample voice for the Pērkons. Up to 64 samples per bank, of any length,
-streamed from the SD card, and each step can play its own. With the top switch on attack
-and the bottom on forward it plays like the stock sampler (voice 4, ALGO 3); the other
-positions add start points, slices (chopping on the .WAV's cue points), choke and reverse.
+streamed from the SD card, and each step can play its own. With the top switch on forward
+and the bottom on attack it plays like the stock sampler (voice 4, ALGO 3); the other
+positions add reverse, granular playback, start points and slices (chopping on the .WAV's
+cue points).
 
 Based on official Pērkons firmware **1.3.0**. Unofficial; not affiliated with Erica Synths.
 
@@ -34,7 +35,7 @@ each time a bank loads. Bank loading will take a bit longer with big samples!
 * **Format:** WAV, **mono, 16-bit**, at any sample rate. This is similar to the stock sampler voice, except sample rates other than 48k will play their original pitch.  Other files (stereo, 24-bit, ...) will be ignored and show up as empty slots.
 * **Length:** any length supported; samples stream from the card as they play.
 * **Cue points** in the WAV (most audio editors can add markers that save as cue points)
-  mark slices for the slice setting (PARAM 2 with switch 1 in 3rd position)
+  mark slices for the slice setting (PARAM 2 with the bottom switch in 3rd position)
 
 While STEP SAMPLER is installed, the stock sampler (voice 4, ALGO 3) plays its factory
 closed hat, open hat and ride.
@@ -64,32 +65,46 @@ choose one. It's kept with the kit. **A step's own sample** is kept with the pat
 |---|---|
 | **TUNE** | pitch: 12 o'clock is the sample's own speed, an octave per eighth of the knob; MIDI notes transpose it |
 | **DECAY** | how long a hit rings, the same range as the stock voices |
-| **PARAM1** | grit: fully left is clean; up to 12 o'clock is 12 bit-ish; past 12 o'clock it carries on to heavy bit and rate reduction (~6-bit, ~2 kHz) |
-| **PARAM2** | set by the top switch: attack, start point or slice |
-| **ALGO** (top switch) | what PARAM2 does (see below) |
-| **MODE** (bottom switch) | forward / choke / reverse (see below) |
+| **PARAM1** | grit: fully left is clean; up to 12 o'clock is 12 bit-ish; past 12 o'clock it carries on to heavy bit and rate reduction (~6-bit, ~2 kHz). With the top switch on granular: the texture (see below) |
+| **PARAM2** | set by the bottom switch: attack, start point or slice |
+| **ALGO** (top switch) | forward / reverse / granular (see below) |
+| **MODE** (bottom switch) | what PARAM2 does (see below) |
 | velocity | the level, as on every voice |
 | CUTOFF, filter switch, DRIVE, FX SEND, LEVEL | the Pērkons's analog stages, exactly as on every voice |
 
-### ALGO: what PARAM2 does
+### ALGO (top switch): how it plays
 
-| ALGO | PARAM2 | each hit plays |
-|---|---|---|
-| position 1: **attack** | how quickly each hit fades in, from instant to about 2s | This is stock voice 4 behavior
-| position 2: **start** | where in the sample each hit begins: fully left is the beginning | from there to the end. Stock behavior with 'sample start' config on |
-| position 3: **slice** | which slice: the WAV's cue points (up to 16), or 16 equal slices if it has none | from that slice on |
-
-### MODE: how it plays
-
-| MODE | each hit |
+| ALGO | each hit |
 |---|---|
-| position 1: **forward** | plays forwards to the end of the sample (like the stock sampler) |
-| position 2: **choke** | plays forwards and stops at the next cue point (or the next of the 16 equal slices): just that chop, then silence until the next hit |
-| position 3: **reverse** | plays the same stretch backwards, from its end: the slice, or from the end of the sample back to the start point |
+| position 1: **forward** | plays its stretch forwards (like the stock sampler) |
+| position 2: **reverse** | plays the same stretch backwards, from its end |
+| position 3: **granular** | plays grains: short overlapping fragments from a 100 ms window at the start of its stretch, for as long as the hit lasts (DECAY) |
+
+### MODE (bottom switch): what PARAM2 does
+
+| MODE | PARAM2 | the stretch |
+|---|---|---|
+| position 1: **attack** | how quickly each hit fades in, from instant to about 2 s | the whole sample (stock voice 4) |
+| position 2: **start** | where in the sample each hit begins: fully left is the beginning | from there to the end (stock with the 'sample start' setting on) |
+| position 3: **slice** | which slice: the WAV's cue points (up to 16), or 16 equal slices if it has none | just that slice, to the next cue point |
 
 Forward and reverse go round again if a hit is still sounding (DECAY long enough) when it
-reaches the end of its stretch; choke doesn't. A new hit on the voice always cuts the one
-before.
+reaches the end of its stretch; a slice plays once. A new hit on the voice always cuts the
+one before.
+
+### Granular
+
+The grains come from the first 100 ms of the stretch: the start of the sample, the start
+point, or the slice (a shorter slice: all of it). Each grain starts somewhere in that
+window and fades in and out, and grains overlap, so the hit sounds as long as DECAY lets
+it, however short the window.
+
+* **PARAM1** sweeps the texture: fully left, tiny grains (5 ms), dense and close to the
+  window's start, a buzzy, tonal sound; turning right, longer grains (up to 100 ms),
+  fewer of them, from anywhere in the window, so the fragments become recognisable and
+  stutter.
+* **TUNE** changes the grains' pitch without changing how long the hit lasts.
+* There's no grit in granular mode (PARAM1 is the texture).
 
 ## MIDI and the sequencer
 

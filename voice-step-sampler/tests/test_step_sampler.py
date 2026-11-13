@@ -23,8 +23,8 @@ import ss_layout as L  # noqa: E402
 from perkons.voicemap import remap  # noqa: E402
 
 POS1, POS2, POS3 = 1, 0, 2                  # switch values for panel positions 1, 2, 3
-ATTACK, START, SLICE = POS1, POS2, POS3     # ALGO
-FWD, CHOKE, REV = POS1, POS2, POS3          # MODE
+FWD, REV, GRAINS = POS1, POS2, POS3         # ALGO (the top switch): how it plays
+ATTACK, START, SLICE = POS1, POS2, POS3     # MODE (the bottom switch): what PARAM2 is
 DRONE = 4095
 VS_VALUE, VS_BASE = 0x50, 0x6a              # voice_state: the values playing, the knobs
 SLOT_PARAM2, SLOT_ALGO, SLOT_MODE = 5, 8, 9
@@ -57,7 +57,7 @@ class Base(unittest.TestCase):
         e.audio(960)
         return e
 
-    def play(self, e, params=(2048, DRONE, 0, 0), algo=START, mode=FWD, vel=127, note=36, n=4800, trig=True):
+    def play(self, e, params=(2048, DRONE, 0, 0), algo=FWD, mode=START, vel=127, note=36, n=4800, trig=True):
         voices = [{'params': [2048] * 4} for _ in range(4)]
         voices[0] = {'params': list(params), 'algo': algo, 'mode': mode}
         e.send_voice_state(voices)
@@ -88,7 +88,7 @@ class Base(unittest.TestCase):
         r.e.call(self.cave['m4host']['pk_ss_load_samples'], bank, max_insns=900_000_000)
         return r
 
-    def knobs(self, r, v=0, p2=0, algo=START, mode=FWD, playing=True):
+    def knobs(self, r, v=0, p2=0, algo=FWD, mode=START, playing=True):
         """Voice v's PARAM2 (0..4095), ALGO and MODE: the values playing (and the knobs)."""
         vs = r.voice_state(v)
         for base in ((VS_VALUE, VS_BASE) if playing else (VS_BASE,)):
@@ -150,11 +150,11 @@ class TestEngine(Base):
         s0 = self.start(x)
         self.assertLessEqual(max(abs(x[s0 + i] - data[1999 - i % 2000] * 0.25) for i in range(200, 1900)), 2)
 
-    def test_choked_stops_at_its_end_with_a_fade(self):
+    def test_a_slice_stops_at_its_end_with_a_fade(self):
         e = self.m7()
         data = [12000] * 2000
         self.setup_sample(e, data)
-        self.hit7(e, rstart=0, rend=1000, loop=0)
+        self.hit7(e, rstart=0, rend=1000, loop=L.PLAY_ONCE)
         x = self.play(e)                                      # DECAY fully right: it would go round
         s0 = self.start(x)
         self.assertLessEqual(max(abs(x[s0 + i] - 3000) for i in range(200, 900)), 2)
@@ -241,6 +241,43 @@ class TestEngine(Base):
         x = self.play(e, params=(2048, 0, 0, 0), n=9600)        # DECAY fully left: ~0.08 s
         self.assertLess(max(map(abs, x[-2400:])), 0.01 * peaks[127])
 
+    def test_grains_sustain_from_the_window(self):
+        e = self.m7()
+        data = [12000 if (i // 50) % 2 else -12000 for i in range(2000)]
+        self.setup_sample(e, data)
+        self.hit7(e, loop=L.PLAY_GRAINS)
+        L.View(e).w(0, 'cover', 2000)                        # all of it in the head
+        x = self.play(e, params=(2048, DRONE, 2048, 0), algo=GRAINS, n=19200)   # 0.4 s, the window 42 ms
+        tail = x[-4800:]
+        self.assertGreater(max(map(abs, tail)), 1000, 'still sounding long after the window')
+        self.assertGreater(sum(1 for a, b in zip(tail, tail[1:]) if a != b), 2000, 'grains: not a held value')
+
+    def test_grains_wait_for_their_window(self):
+        e = self.m7()
+        self.setup_sample(e, pattern(8000))                  # the window (4000-) is past the head
+        self.hit7(e, rstart=4000, rend=4000 + L.GRAIN_FRAMES, loop=L.PLAY_GRAINS)
+        L.View(e).w(0, 'cover', 0)
+        x = self.play(e, params=(2048, DRONE, 2048, 0), algo=GRAINS, n=960)
+        self.assertEqual(max(map(abs, x)), 0, 'nothing loaded yet: silent')
+
+    def test_cpu_grains(self):
+        e = self.m7()
+        self.setup_sample(e, pattern(2000))
+        self.hit7(e, loop=L.PLAY_GRAINS)
+        L.View(e).w(0, 'cover', 2000)
+        self.play(e, params=(2048 + 300, DRONE, 0, 0), algo=GRAINS, n=960)     # dense: 4 grains
+        base = verify.boot(self.img, self.s7)
+        self.play(base, n=960)
+        counts = []
+        for m in (e, base):
+            m.count_insns(True)
+            m.insn_count = 0
+            m.audio(960)
+            counts.append(m.insn_count / 960)
+            m.count_insns(False)
+        print(f'\nSTEP SAMPLER grains: ~{counts[0] - counts[1]:.0f} instructions per sample more than stock output 1')
+        self.assertLess(counts[0] - counts[1], 1200)
+
     def test_cpu(self):
         e = self.m7()
         self.setup_sample(e, pattern(2000))
@@ -305,19 +342,19 @@ class TestHits(Base):
         return tuple(self.r.v.r(0, f) for f in fields)
 
     def test_attack_plays_from_the_beginning(self):
-        self.knobs(self.r, p2=3000, algo=ATTACK)
+        self.knobs(self.r, p2=3000, mode=ATTACK)
         self.hit(self.r)
         self.assertEqual(self.out('sample', 'dir', 'src', 'rstart', 'rend'), (0, L.FWD, L.SRC_HEAD, 0, 40000))
         self.assertEqual(self.r.v.r(0, 'cover'), L.HEAD_FRAMES)
 
     def test_start_point_late_start_plays_from_the_beginning(self):
-        self.knobs(self.r, p2=2048, algo=START)                # 20000: not in the head, not prepared
+        self.knobs(self.r, p2=2048, mode=START)                # 20000: not in the head, not prepared
         self.hit(self.r)
         self.assertEqual(self.out('rstart', 'rend', 'src'), (0, 40000, L.SRC_HEAD))
 
     def test_start_point_prepared(self):
-        self.knobs(self.r, p2=2048, algo=START, playing=False)
-        self.knobs(self.r, p2=2048, algo=START)
+        self.knobs(self.r, p2=2048, mode=START, playing=False)
+        self.knobs(self.r, p2=2048, mode=START)
         self.poll(self.r)                                     # the main loop prepares the knobs' start
         self.assertEqual((self.r.v.r(0, 'next_first'), self.r.v.r(0, 'next_len')), (20000, L.NEXT_FRAMES))
         got = struct.unpack(f'<{L.NEXT_FRAMES}h', bytes(self.r.e.uc.mem_read(L.nextbuf(0), 2 * L.NEXT_FRAMES)))
@@ -328,55 +365,49 @@ class TestHits(Base):
     def test_slices_from_cues_and_equal(self):
         kit = self.r.r16(self.r.sym.g['current_kit'])
         self.r.e.uc.mem_write(self.cave['m4host']['pk_ss_kit_sample'] + 4 * kit, bytes([1, 0, 0, 0]))   # sample 2
-        for p2, mode, want in ((0, CHOKE, (1000, 3000, 0)), (2048, CHOKE, (3000, 5000, 0)),
-                               (4095, CHOKE, (5000, 9000, 0)), (2048, FWD, (3000, 9000, 1)),
-                               (2048, REV, (3000, 5000, 1))):
-            with self.subTest(p2=p2, mode=mode):
-                self.knobs(self.r, p2=p2, algo=SLICE, mode=mode, playing=False)
-                self.knobs(self.r, p2=p2, algo=SLICE, mode=mode)
+        for p2, algo, want in ((0, FWD, (1000, 3000)), (2048, FWD, (3000, 5000)),
+                               (4095, FWD, (5000, 9000)), (2048, REV, (3000, 5000))):
+            with self.subTest(p2=p2, algo=algo):
+                self.knobs(self.r, p2=p2, mode=SLICE, algo=algo, playing=False)
+                self.knobs(self.r, p2=p2, mode=SLICE, algo=algo)
                 self.poll(self.r)                             # slices past the head: prepared
                 self.hit(self.r)
-                self.assertEqual(self.out('sample', 'rstart', 'rend', 'loop'), (1, *want))
-                past_head = (want[1] if mode == REV else want[0]) > L.HEAD_FRAMES
+                self.assertEqual(self.out('sample', 'rstart', 'rend', 'loop'), (1, *want, L.PLAY_ONCE))
+                past_head = (want[1] if algo == REV else want[0]) > L.HEAD_FRAMES
                 self.assertEqual(self.r.v.r(0, 'src'), L.SRC_NEXT if past_head else L.SRC_HEAD)
                 self.seen(self.r)
         self.r.e.uc.mem_write(self.cave['m4host']['pk_ss_kit_sample'] + 4 * kit, bytes([0, 0, 0, 0]))
-        self.knobs(self.r, p2=4096 * 3 // 16, algo=SLICE, mode=CHOKE, playing=False)   # no cues: 16 equal, the 4th
-        self.knobs(self.r, p2=4096 * 3 // 16, algo=SLICE, mode=CHOKE)
+        self.knobs(self.r, p2=4096 * 3 // 16, mode=SLICE, playing=False)   # no cues: 16 equal, the 4th
+        self.knobs(self.r, p2=4096 * 3 // 16, mode=SLICE)
         self.poll(self.r)
         self.hit(self.r)
         self.assertEqual(self.out('rstart', 'rend'), (7500, 10000))
 
     def test_reverse_from_the_end_of_its_stretch(self):
-        self.knobs(self.r, p2=0, algo=ATTACK, mode=REV)
+        self.knobs(self.r, p2=0, mode=ATTACK, algo=REV)
         self.hit(self.r)                                      # its end (40000) isn't in the head: late
         self.assertEqual(self.out('dir', 'rstart'), (L.FWD, 0))
-        self.knobs(self.r, p2=0, algo=ATTACK, mode=REV, playing=False)
+        self.knobs(self.r, p2=0, mode=ATTACK, algo=REV, playing=False)
         self.poll(self.r)                                     # prepared: the last frames, reversed
         self.hit(self.r)
         self.assertEqual(self.out('dir', 'src', 'rend'), (L.REV, L.SRC_NEXT, 40000))
         got = struct.unpack('<8h', bytes(self.r.e.uc.mem_read(L.nextbuf(0), 16)))
         self.assertEqual(list(got), self.data[39999:39991:-1])
 
-    def test_choke_stops_at_the_next_cut(self):
-        kit = self.r.r16(self.r.sym.g['current_kit'])
-        for sample, algo, p2, want in ((1, ATTACK, 0, (0, 1000)),          # cues 1000, 3000, 5000
-                                       (1, START, 2048, (4500, 5000)),
-                                       (1, START, 4000, (8789, 9000)),     # after the last cue: the end
-                                       (0, START, 1024, (10000, 12500))):  # no cues: the next 16th
-            with self.subTest(sample=sample, algo=algo, p2=p2):
-                self.r.e.uc.mem_write(self.cave['m4host']['pk_ss_kit_sample'] + 4 * kit, bytes([sample, 0, 0, 0]))
-                self.knobs(self.r, p2=p2, algo=algo, mode=CHOKE, playing=False)
-                self.knobs(self.r, p2=p2, algo=algo, mode=CHOKE)
-                self.poll(self.r)
-                self.hit(self.r)
-                self.assertEqual(self.out('rstart', 'rend', 'loop', 'dir'), (*want, 0, L.FWD))
-                self.seen(self.r)
-
-    def test_late_choked_start_plays_the_first_cut(self):
-        self.knobs(self.r, p2=2048, algo=START, mode=CHOKE)  # 20000: not prepared
+    def test_late_slice_plays_the_first_cut(self):
+        self.knobs(self.r, p2=2048, mode=SLICE)              # 16 equal: 20000-22500, not prepared
         self.hit(self.r)
-        self.assertEqual(self.out('rstart', 'rend', 'loop'), (0, 2500, 0))
+        self.assertEqual(self.out('rstart', 'rend', 'loop'), (0, 2500, L.PLAY_ONCE))
+
+    def test_grains_take_a_window_from_the_position(self):
+        self.knobs(self.r, p2=2048, algo=GRAINS, mode=START)
+        self.hit(self.r)
+        self.assertEqual(self.out('dir', 'rstart', 'rend', 'loop'), (L.FWD, 20000, 20000 + L.GRAIN_FRAMES, L.PLAY_GRAINS))
+        kit = self.r.r16(self.r.sym.g['current_kit'])
+        self.r.e.uc.mem_write(self.cave['m4host']['pk_ss_kit_sample'] + 4 * kit, bytes([1, 0, 0, 0]))
+        self.knobs(self.r, p2=0, algo=GRAINS, mode=SLICE)    # a slice shorter than the window
+        self.hit(self.r)
+        self.assertEqual(self.out('rstart', 'rend', 'loop'), (1000, 3000, L.PLAY_GRAINS))
 
     def test_other_voices_left_alone(self):
         g = self.r.v.r(1, 'gen')
@@ -388,7 +419,7 @@ class TestStream(Base):
     def test_ring_follows_the_tape_and_the_reader(self):
         data = pattern(30000)
         r = self.m4({'SAMPLES/1.wav': L.wav(data)})
-        self.knobs(r, algo=ATTACK)
+        self.knobs(r, mode=ATTACK)
         self.hit(r)
         v = r.v
         self.poll(r, 4)
@@ -414,22 +445,43 @@ class TestStream(Base):
     def test_loops_round_its_stretch(self):
         data = pattern(30000)
         r = self.m4({'SAMPLES/1.wav': L.wav(data)})
-        p2 = 4096 * 10 // 16                                  # 16 equal slices: the 11th, 18750-20625
-        self.knobs(r, p2=p2, algo=SLICE, mode=REV)
+        p2 = 3840                                             # start point 28125: the last 1875 frames
+        self.knobs(r, p2=p2, mode=START, algo=REV)
         self.hit(r)                                           # late (not prepared): from the beginning
-        self.knobs(r, p2=p2, algo=SLICE, mode=REV, playing=False)
+        self.knobs(r, p2=p2, mode=START, algo=REV, playing=False)
         self.poll(r)
         self.hit(r)                                           # prepared
         v = r.v
-        self.assertEqual((v.r(0, 'rstart'), v.r(0, 'rend'), v.r(0, 'src')), (18750, 20625, L.SRC_NEXT))
+        self.assertEqual((v.r(0, 'rstart'), v.r(0, 'rend'), v.r(0, 'src')), (28125, 30000, L.SRC_NEXT))
         v.w(0, 'seen_gen', v.r(0, 'gen'))
         v.w(0, 'm7_active', 1)
         self.poll(r, 6)
         ring = struct.unpack(f'<{L.RING_FRAMES}h', bytes(r.e.uc.mem_read(L.ringbuf(0), 2 * L.RING_FRAMES)))
         frm, to = v.r(0, 'ring_from'), v.r(0, 'ring_to')
-        self.assertEqual(frm, 1875, 'after the prepared start (the whole slice)')
-        want = [data[20624 - t % 1875] for t in range(frm, to)]     # backwards, round and round
+        self.assertEqual(frm, 1875, 'after the prepared start (the whole stretch)')
+        self.assertGreater(to, 2 * 1875)
+        want = [data[29999 - t % 1875] for t in range(frm, to)]     # backwards, round and round
         self.assertEqual([ring[t % L.RING_FRAMES] for t in range(frm, to)], want)
+
+    def test_a_slice_and_a_granular_window_stream_once(self):
+        data = pattern(30000)
+        r = self.m4({'SAMPLES/1.wav': L.wav(data)})
+        v = r.v
+        for algo, mode, p2, length in ((REV, SLICE, 4096 * 10 // 16, 1875), (GRAINS, START, 2048, L.GRAIN_FRAMES)):
+            with self.subTest(algo=algo, mode=mode):
+                self.knobs(r, p2=p2, algo=algo, mode=mode)
+                self.hit(r)
+                v.w(0, 'seen_gen', v.r(0, 'gen'))
+                v.w(0, 'm7_active', 1)
+                v.w(0, 't_read', 0)
+                self.poll(r, 8)
+                self.assertEqual(v.r(0, 'ring_to'), length, 'up to its end, then no more')
+                frm = v.r(0, 'ring_from')
+                ring = struct.unpack(f'<{L.RING_FRAMES}h', bytes(r.e.uc.mem_read(L.ringbuf(0), 2 * L.RING_FRAMES)))
+                rstart, rend = v.r(0, 'rstart'), v.r(0, 'rend')
+                frames = range(rend - 1, rstart - 1, -1) if algo == REV else range(rstart, rend)
+                self.assertEqual([ring[t % L.RING_FRAMES] for t in range(frm, length)],
+                                 [data[f] for f in list(frames)[frm:length]])
 
 
 # ---- the sample page and the step edits ---------------------------------------------------------
@@ -535,10 +587,10 @@ class TestBothCores(Base):
         data = pattern(60000)
         r = self.m4({'SAMPLES/1.wav': L.wav(data)})
         e = self.m7()
-        self.knobs(r, algo=ATTACK)
+        self.knobs(r, mode=ATTACK)
         self.hit(r)
         self.sync(r.e, e)
-        x = self.play(e, params=(2048, DRONE, 0, 0), algo=ATTACK, n=256)
+        x = self.play(e, params=(2048, DRONE, 0, 0), mode=ATTACK, n=256)
         for _ in range(40):                                   # ~0.2 s: well past the head (53 ms)
             self.sync(r.e, e)
             self.poll(r, 3)

@@ -15,6 +15,10 @@
  * ring_to). The M4 writes the hit just before the trigger goes out (the trigger message
  * follows it), and streams the ring from its main loop.
  *
+ * A granular hit (SS_PLAY_GRAINS) has a region of at most SS_GRAIN_FRAMES: the M4 streams
+ * it into the ring once (it fits, so nothing is overwritten) and the M7 plays grains from
+ * the tape frames loaded so far until the envelope closes.
+ *
  * The card's DMA needs word-aligned buffers, so the M4 reads through the firmware's 4 KB
  * JSON buffer (AXI SRAM, free whenever the main loop runs our code), placed so the direct
  * part of each read is aligned, then copies (and for reverse, turns) the frames over. */
@@ -30,6 +34,7 @@
 #define SS_FILES            (SS_OUTPUTS + 1)        /* + 1: preparing starts, loading banks */
 #define SS_PREP_FIL         SS_OUTPUTS
 #define SS_MAGIC            0x53535331u             /* 'SSS1' */
+#define SS_GRAIN_FRAMES     4800                    /* a granular hit's window: 100 ms at 48 kHz */
 
 #define SS_BASE             0x24020100u             /* the stock sample data starts at 0x240200e4 */
 #define SS_CTRL             SS_BASE
@@ -45,6 +50,9 @@ _Static_assert(SS_END <= SS_POOL_END, "STEP SAMPLER fits the stock custom-sample
 
 enum { SS_FWD = 0, SS_REV = 1 };
 enum { SS_SRC_HEAD = 0, SS_SRC_NEXT = 1 };
+/* how a hit plays its region: round again while the envelope is open, once (a slice), or
+ * as grains (until the envelope closes) */
+enum { SS_PLAY_ONCE = 0, SS_PLAY_LOOP = 1, SS_PLAY_GRAINS = 2 };
 
 typedef struct {
     uint32_t frames;                /* 0: an empty slot */
@@ -56,7 +64,7 @@ typedef struct {
 /* one output: the hit (M4, at the trigger), its stream (M4 main loop), its progress (M7) */
 typedef struct {
     volatile uint32_t gen;          /* M4: +1 per hit, after the fields below are written */
-    uint8_t sample, dir, src, loop; /* loop: 1 goes round while the envelope is open, 0 stops (choke) */
+    uint8_t sample, dir, src, loop; /* loop: SS_PLAY_LOOP / ONCE / GRAINS */
     uint32_t rstart, rend;          /* the region: sample frames [rstart, rend) */
     uint32_t a_len;                 /* tape frames [0, a_len) in the prepared start (SS_SRC_NEXT) */
     volatile uint32_t ring_gen;     /* M4: the hit the ring holds */
@@ -80,6 +88,7 @@ typedef struct {
 } ss_ctrl_t;
 
 _Static_assert(sizeof(ss_ctrl_t) <= SS_CTRL_SIZE, "control fits");
+_Static_assert(SS_GRAIN_FRAMES + 2 <= SS_RING_FRAMES, "a granular window fits the ring (+ the M7's guard)");
 /* the layout tests and tools mirror (lib/ss_layout.py) */
 _Static_assert(sizeof(ss_sample_t) == 16 && sizeof(ss_out_t) == 68, "ss_layout.py: SAMPLE_SIZE, OUT_SIZE");
 _Static_assert(__builtin_offsetof(ss_ctrl_t, out) == 16 + 16 * SS_SAMPLES, "ss_layout.py: CTRL_OUT");

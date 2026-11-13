@@ -5,19 +5,24 @@
  * (algo, mode, velocity, note, param pointers, mute, gain) sit at the stock offsets, and
  * the vtable has the four methods the firmware calls (trigger, init, update, render).
  *
- * The M4 decides what each hit plays (the sample, its stretch, the direction: from ALGO,
- * MODE, PARAM2 and the step) and writes it into the shared control just before the
- * trigger goes out (ss_shared.h); this side plays it: pitch, grit, envelope, level.
+ * The M4 decides what each hit plays (the sample, its stretch, the direction or grains:
+ * from ALGO, MODE, PARAM2 and the step) and writes it into the shared control just before
+ * the trigger goes out (ss_shared.h); this side plays it: pitch, grit or grains, envelope,
+ * level.
  *
  *   TUNE (param 0)    pitch: 512 per octave, 12 o'clock = the sample's own speed, + the
  *                     trigger note (note - 36 semitones); each sample at its own rate
  *   DECAY (param 1)   decay, the stock voices' range (fully right holds)
- *   PARAM1 (param 2)  grit: clean, to 12-bit ~26 kHz at 12 o'clock, to ~6-bit ~2 kHz
- *   PARAM2 (param 3)  ALGO 1: attack, instant to ~2 s (ALGO 2 / 3: the M4's start / slice)
- *   ALGO, MODE        read by the M4 (what to play); here only ALGO 1 = attack on PARAM2
+ *   PARAM1 (param 2)  grit: clean, to 12-bit ~26 kHz at 12 o'clock, to ~6-bit ~2 kHz;
+ *                     granular: the texture (texture())
+ *   PARAM2 (param 3)  MODE 1: attack, instant to ~2 s (MODE 2 / 3: the M4's start / slice)
+ *   ALGO, MODE        read by the M4 (what to play); here MODE 1 = attack on PARAM2
  *
  * At the end of its stretch a hit goes round again while the envelope is still open, unless
- * it's choked (MODE 2): then it stops there, fading out over its last CUT_FADE frames. */
+ * it plays once (a slice): then it stops there, fading out over its last CUT_FADE frames.
+ * A granular hit plays overlapping grains from its window (the tape frames loaded so far)
+ * until the envelope closes: each grain starts at a random place in the window, is shaped
+ * by a parabola and plays at TUNE's speed, so TUNE is pitch alone. */
 #include <stdint.h>
 #include "fw_m7.h"
 #include "ss_shared.h"
@@ -30,7 +35,8 @@
 #define MAX_INC         8.0f        /* three octaves up at most: the card keeps up */
 #define MAGIC           0x53535356u /* 'VSSS' */
 #define ENV_OPEN        0.001f      /* the envelope still open: loop at the end */
-#define CUT_FADE        64u         /* a choked hit's fade into its cut, tape frames */
+#define CUT_FADE        64u         /* a slice's fade into its cut, tape frames */
+#define NGRAINS         4           /* grains sounding at once, at most */
 
 enum { POS1 = 1, POS2 = 0, POS3 = 2 };
 enum { IDLE, ATTACK, DECAY };
@@ -54,6 +60,11 @@ typedef struct {
     float env, att, dec, amp;
     int32_t stage;
     float hold_acc, held, grit_rate, grit_step;
+    /* granular */
+    struct { float pos; uint32_t age, len; } grain[NGRAINS];    /* len 0: free */
+    uint32_t g_cover;                   /* tape frames the hit had before the ring */
+    float g_len, g_every, g_spread, g_norm, g_wait;
+    uint32_t rng;
 } ss_t;
 
 _Static_assert(__builtin_offsetof(ss_t, algo) == OFF_cVoice_algo, "algo");
@@ -123,6 +134,18 @@ static void grit(ss_t *z, float k)
     z->grit_step = k > 0.0f ? exp2f_(16.0f - bits) : 0.0f;  /* quantisation step, int16 scale */
 }
 
+/* the granular texture (PARAM1, 0..1), from small dense grains to large sparse ones: grain
+ * length 5 ms .. 100 ms, overlap 4 .. 1.2, and the part of the window grains start in,
+ * near its start .. all of it */
+static void texture(ss_t *z, float k)
+{
+    float overlap = 4.0f - 2.8f * k;
+    z->g_len = 240.0f * exp2f_(k * 4.3219281f);            /* 240 .. 4800 output samples */
+    z->g_every = z->g_len / overlap;
+    z->g_spread = 0.1f + 0.9f * k;
+    z->g_norm = 1.5f / overlap;                             /* the parabolas' sum ~ overlap * 2/3 */
+}
+
 /* ---- control (per block) ------------------------------------------------------------ */
 
 static void update(cVoice *v)
@@ -136,9 +159,14 @@ static void update(cVoice *v)
     z->inc = clampf((float)rate * (1.0f / SR) * exp2f_(oct), 0.0f, MAX_INC);
     float t60 = decay_t60(knob(z, 1));
     z->dec = t60 > 0.0f ? exp2f_(-9.965784f / (t60 * SR)) : 1.0f;
-    float ta = z->algo == POS1 ? 0.0005f * exp2f_(knob(z, 3) * 11.965784f) : 0.0005f;   /* 0.5 ms .. 2 s */
+    float ta = z->mode == POS1 ? 0.0005f * exp2f_(knob(z, 3) * 11.965784f) : 0.0005f;   /* 0.5 ms .. 2 s */
     z->att = 1.0f - exp2f_(-2.5849625f / (ta * SR));
-    grit(z, knob(z, 2));
+    if (z->gen && z->loop == SS_PLAY_GRAINS) {
+        grit(z, 0.0f);
+        texture(z, knob(z, 2));
+    } else {
+        grit(z, knob(z, 2));
+    }
 }
 
 static void trigger(cVoice *v)
@@ -167,6 +195,10 @@ static void trigger(cVoice *v)
     z->len = o->rend - o->rstart;
     z->a_len = o->a_len;
     z->head = SS->sample[o->sample].head_frames;
+    z->g_cover = o->cover;
+    z->g_wait = 0.0f;
+    for (int g = 0; g < NGRAINS; g++)
+        z->grain[g].len = 0;
     z->t = 0;
     z->frac = 0.0f;
     z->hold_acc = 1.0f;                 /* the first output sample takes a fresh value */
@@ -186,6 +218,7 @@ static void init(cVoice *v)
     z->env = 0.0f;
     z->amp = 1.0f;
     z->gen = 0;
+    z->rng = 0x9e3779b9u ^ z->out;
     update(v);
 }
 
@@ -203,6 +236,62 @@ static int32_t frame(const ss_t *z, uint32_t t)
     if (o->ring_gen == z->gen && t >= o->ring_from && t < o->ring_to)
         return SS_RINGBUF(z->out)[t % SS_RING_FRAMES];
     return 0x7fffffff;
+}
+
+/* a granular hit: the tape frames loaded so far (the ring holds [cover, ring_to)) */
+static uint32_t loaded(const ss_t *z)
+{
+    const ss_out_t *o = &SS->out[z->out];
+    uint32_t n = o->ring_gen == z->gen ? o->ring_to : z->g_cover;
+    return n < z->len ? n : z->len;
+}
+
+static float rand01(ss_t *z)
+{
+    uint32_t x = z->rng;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    z->rng = x;
+    return (float)(x >> 8) * (1.0f / 16777216.0f);
+}
+
+/* one output sample of grains: start one when it's time, sum the sounding ones (positions
+ * wrap round what's loaded) */
+static float grains(ss_t *z)
+{
+    uint32_t n = loaded(z);
+    if (n < 2)
+        return 0.0f;                    /* the window is still loading */
+    z->g_wait -= 1.0f;
+    if (z->g_wait <= 0.0f) {
+        z->g_wait += z->g_every;
+        for (int g = 0; g < NGRAINS; g++) {
+            if (!z->grain[g].len) {
+                z->grain[g].pos = rand01(z) * z->g_spread * (float)n;
+                z->grain[g].age = 0;
+                z->grain[g].len = (uint32_t)z->g_len;
+                break;
+            }
+        }
+    }
+    float sum = 0.0f;
+    for (int g = 0; g < NGRAINS; g++) {
+        if (!z->grain[g].len)
+            continue;
+        float x = (float)z->grain[g].age / (float)z->grain[g].len;
+        uint32_t t = (uint32_t)z->grain[g].pos;
+        float f = z->grain[g].pos - (float)t;
+        int32_t a = frame(z, t % n), b = frame(z, (t + 1) % n);
+        if (a != 0x7fffffff && b != 0x7fffffff)
+            sum += 4.0f * x * (1.0f - x) * ((float)a + ((float)b - (float)a) * f);
+        z->grain[g].pos += z->inc;
+        if (z->grain[g].pos >= (float)n)
+            z->grain[g].pos -= (float)n;
+        if (++z->grain[g].age >= z->grain[g].len)
+            z->grain[g].len = 0;
+    }
+    return sum * z->g_norm;
 }
 
 static int16_t render(cVoice *v)
@@ -232,26 +321,29 @@ static int16_t render(cVoice *v)
         }
     }
 
-    if (z->t >= z->len && (!z->loop || z->env < ENV_OPEN)) {    /* the end: choked, or the envelope closed */
-        z->stage = IDLE;
-        SS->out[z->out].m7_active = 0;
-        return 0;
-    }
-
-    /* the sample: linear interpolation between tape frames t and t + 1 */
-    int32_t a = frame(z, z->t), b = z->loop || z->t + 1 < z->len ? frame(z, z->t + 1) : a;
     float s;
-    if (a == 0x7fffffff)
-        s = 0.0f;                       /* not loaded: silent until the stream catches up */
-    else
-        s = b == 0x7fffffff ? (float)a : (float)a + ((float)b - (float)a) * z->frac;
-    if (!z->loop && z->len - z->t < CUT_FADE)
-        s *= (float)(z->len - z->t) * (1.0f / CUT_FADE);    /* into the cut: no click */
-    z->frac += z->inc;
-    uint32_t whole = (uint32_t)z->frac;
-    z->t += whole;
-    z->frac -= (float)whole;
-    SS->out[z->out].t_read = z->t;
+    if (z->loop == SS_PLAY_GRAINS) {
+        s = grains(z);                  /* until the envelope closes */
+    } else {
+        if (z->t >= z->len && (z->loop == SS_PLAY_ONCE || z->env < ENV_OPEN)) {   /* the end: played once, or the envelope closed */
+            z->stage = IDLE;
+            SS->out[z->out].m7_active = 0;
+            return 0;
+        }
+        /* the sample: linear interpolation between tape frames t and t + 1 */
+        int32_t a = frame(z, z->t), b = z->loop || z->t + 1 < z->len ? frame(z, z->t + 1) : a;
+        if (a == 0x7fffffff)
+            s = 0.0f;                   /* not loaded: silent until the stream catches up */
+        else
+            s = b == 0x7fffffff ? (float)a : (float)a + ((float)b - (float)a) * z->frac;
+        if (z->loop == SS_PLAY_ONCE && z->len - z->t < CUT_FADE)
+            s *= (float)(z->len - z->t) * (1.0f / CUT_FADE);    /* into the cut: no click */
+        z->frac += z->inc;
+        uint32_t whole = (uint32_t)z->frac;
+        z->t += whole;
+        z->frac -= (float)whole;
+        SS->out[z->out].t_read = z->t;
+    }
 
     /* grit: hold each value for 1 / grit_rate samples, then quantise */
     z->hold_acc += z->grit_rate;
