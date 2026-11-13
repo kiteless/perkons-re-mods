@@ -168,7 +168,7 @@
    "id": "voice-step-sampler",
    "dir": "voice-step-sampler",
    "title": "STEP SAMPLER",
-   "summary": "64 SAMPLES PER BANK, ANY LENGTH, STREAMED FROM THE CARD; EACH STEP ITS OWN (STEP + SHUFFLE). TOP SWITCH: PARAM2 = ATTACK, START OR SLICE. BOTTOM: FORWARD, CHOKE OR REVERSE.",
+   "summary": "STEP+SHUFFLE SELECTS ONE OF 64 SAMPLES PER BANK FROM SD. BIT REDUCTION, PLAYBACK DIRECTION, AND SAMPLE SLICING.",
    "readme": "voice-step-sampler/README.md",
    "patches": [
     "voice_step_sampler"
