@@ -1,0 +1,30 @@
+{
+  "options": [
+    {
+      "id": "off-grid",
+      "title": "OFF-GRID",
+      "summary": "PLAY STEPS OFF THE GRID: THE TRIGGER KEYS AND MIDI NOTES RECORD YOUR HITS EARLY OR LATE, AS PLAYED (CONFIG ROW 3 STEP 13), AND HOLD A STEP + TURN TEMPO TO MOVE IT EARLY OR LATE (CONFIG ROW 3 STEP 12).",
+      "patches": [
+        "off_grid"
+      ],
+      "code": "og",
+      "controls": [
+        {
+          "combo": "ROW 3 STEP 13",
+          "page": "CONFIG",
+          "does": "TURNS OFF-GRID RECORDING ON OR OFF"
+        },
+        {
+          "combo": "ROW 3 STEP 12",
+          "page": "CONFIG",
+          "does": "TURNS TEMPO EDITING ON OR OFF"
+        },
+        {
+          "combo": "STEP + TEMPO",
+          "page": "MAIN",
+          "does": "HOLD A STEP, TURN TEMPO: PLAYS THE STEP EARLY OR LATE"
+        }
+      ]
+    }
+  ]
+}

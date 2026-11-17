@@ -30,7 +30,7 @@ on your computer.
 | **fx-reverb** | a reverb in place of the BBD delay, switched in the config menu | [fx-reverb/README.md](fx-reverb/README.md) |
 | **fx-freeze** | the FX section's 2-way switch as freeze: loops the delay, or holds the reverb | [fx-freeze/README.md](fx-freeze/README.md) |
 | **per-track-lfo** | LFO groups: hold trigger keys and turn the LFO knobs to give those voices their own LFO | [per-track-lfo/README.md](per-track-lfo/README.md) |
-| **seq-unquantized** | the trigger keys and MIDI notes record your hits where you played them, off the grid (config row 3 step 13) | [seq-unquantized/README.md](seq-unquantized/README.md) |
+| **off-grid** | play steps off the grid: the trigger keys and MIDI notes record your hits early or late, as played (config row 3 step 13), and hold a step + turn TEMPO to move it early or late (config row 3 step 12) | [off-grid/README.md](off-grid/README.md) |
 | **pattern-bpm** | each pattern keeps the tempo it was saved at, and plays at it (config row 3 step 14) | [pattern-bpm/README.md](pattern-bpm/README.md) |
 
 All of them are for Pērkons firmware **1.3.0**, and any combination can be built together.

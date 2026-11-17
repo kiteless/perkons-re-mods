@@ -92,6 +92,50 @@
    }
   },
   {
+   "id": "off-grid",
+   "dir": "off-grid",
+   "title": "OFF-GRID",
+   "summary": "PLAY STEPS OFF THE GRID: THE TRIGGER KEYS AND MIDI NOTES RECORD YOUR HITS EARLY OR LATE, AS PLAYED (CONFIG ROW 3 STEP 13), AND HOLD A STEP + TURN TEMPO TO MOVE IT EARLY OR LATE (CONFIG ROW 3 STEP 12).",
+   "readme": "off-grid/README.md",
+   "patches": [
+    "off_grid"
+   ],
+   "code": "og",
+   "kind": "mod",
+   "requires": [],
+   "conflicts": [],
+   "target": "1.3.0",
+   "controls": [
+    {
+     "combo": "ROW 3 STEP 13",
+     "page": "CONFIG",
+     "does": "TURNS OFF-GRID RECORDING ON OR OFF"
+    },
+    {
+     "combo": "ROW 3 STEP 12",
+     "page": "CONFIG",
+     "does": "TURNS TEMPO EDITING ON OR OFF"
+    },
+    {
+     "combo": "STEP + TEMPO",
+     "page": "MAIN",
+     "does": "HOLD A STEP, TURN TEMPO: PLAYS THE STEP EARLY OR LATE"
+    }
+   ],
+   "memory": {
+    "v1.3.0": {
+     "ram": {
+      "store": {
+       "kiteless/perkons-re-mods:off-grid/src/m4/record.c:.pk_axi": 4,
+       "kiteless/perkons-re-mods:off-grid/src/m4/tempo_edit.c:.pk_axi": 16
+      }
+     },
+     "takeovers": {},
+     "borrows": {}
+    }
+   }
+  },
+  {
    "id": "pattern-bpm",
    "dir": "pattern-bpm",
    "title": "PER PATTERN BPM",
@@ -174,39 +218,6 @@
        "kiteless/perkons-re-mods:per-track-lfo/src/m4/per_track_lfo.c:.bss.knob": 48,
        "kiteless/perkons-re-mods:per-track-lfo/src/m4/per_track_lfo.c:.bss.wavetable": 48,
        "kiteless/perkons-re-mods:per-track-lfo/src/m4/per_track_lfo.c:.bss.lfo": 192
-      }
-     },
-     "takeovers": {},
-     "borrows": {}
-    }
-   }
-  },
-  {
-   "id": "seq-unquantized",
-   "dir": "seq-unquantized",
-   "title": "UNQUANTIZED",
-   "summary": "THE TRIGGER KEYS AND MIDI NOTES RECORD YOUR HITS WHERE YOU PLAYED THEM, OFF THE GRID. SWITCHED ON IN THE CONFIG MENU, ROW 3 STEP 13.",
-   "readme": "seq-unquantized/README.md",
-   "patches": [
-    "seq_unquantized"
-   ],
-   "code": "uq",
-   "kind": "mod",
-   "requires": [],
-   "conflicts": [],
-   "target": "1.3.0",
-   "controls": [
-    {
-     "combo": "ROW 3 STEP 13",
-     "page": "CONFIG",
-     "does": "TURNS UNQUANTIZED RECORDING ON OR OFF"
-    }
-   ],
-   "memory": {
-    "v1.3.0": {
-     "ram": {
-      "store": {
-       "kiteless/perkons-re-mods:seq-unquantized/src/m4/unquantized.c:.pk_axi": 4
       }
      },
      "takeovers": {},

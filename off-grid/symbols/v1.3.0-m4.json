@@ -1,0 +1,25 @@
+{
+  "_comment": "off-grid: this mod's hook sites (the firmware facts they name are in the framework's symbols/v1.3.0-m4.json); loaded with them by perkons.mods",
+  "sites": {
+    "og.playing.081039ec": {
+      "addr": "0x081039ec",
+      "call": "seq_play_state",
+      "_note": "key_event, a trigger key down, after playing the voice: playing (1) and REC on -> stock writes the nearest step"
+    },
+    "og.midi_note_lit": {
+      "addr": "0x0812be8c",
+      "word": "midi_note_on|1",
+      "_note": "the MIDI input's callbacks: note-on"
+    },
+    "og.tempo.08103bd6": {
+      "addr": "0x08103bd6",
+      "call": "tempo_knob",
+      "_note": "ui_update: tempo_knob(knob_value(TEMPO) in s0, pot moved in r0); moved 0 keeps the tempo"
+    },
+    "og.page0_render.0812bf68": {
+      "addr": "0x0812bf68",
+      "word": "page0_render|1",
+      "_note": ".data image: UI page 0 (main page) render pointer (page struct 0x10000834 + 4)"
+    }
+  }
+}
