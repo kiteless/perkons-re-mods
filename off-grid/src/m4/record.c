@@ -15,17 +15,6 @@
 #include "pk_host.h"
 #include "fw_m4_seq.h"
 
-/* fw_m4_seq.h has these from perkons-re 0c6e58e on; earlier checkouts get them here */
-#ifndef FW_VS_STEP_STATE
-#define FW_VS_STEP_STATE    0x28    /* u8: 0 the step's time is ahead, 1 it came, 2 the next step started early */
-#endif
-#ifndef FW_DC_VELOCITY
-#define FW_DC_VELOCITY      0x1b    /* MIDI velocity on */
-#endif
-#ifndef fw_seq_play_state
-#define fw_seq_play_state   FW_CALL(SYM_seq_play_state, int (*)(void))  /* 1: playing */
-#endif
-
 PK_AXI uint8_t pk_cfg_off_grid;            /* system/mods.json "off-grid" */
 PK_AXI static uint8_t played;               /* the trigger key being handled: row + 1, 0 none */
 
